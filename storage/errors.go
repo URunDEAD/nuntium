@@ -13,7 +13,7 @@ func (me Multierror) Error() string {
 		return me[0].Error()
 	}
 
-	return fmt.Sprintf("multiple errors: %v", me)
+	return fmt.Sprintf("multiple errors: %v", []error(me))
 }
 
 func (me Multierror) Result() error {

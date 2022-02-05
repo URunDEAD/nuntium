@@ -13,7 +13,7 @@ func (e ErrorDecodeShortData) Error() string {
 type ErrorDecodeUnknownExpiryToken uint64
 
 func (e ErrorDecodeUnknownExpiryToken) Error() string {
-	return fmt.Sprintf("Unknown expiry token: %x", e)
+	return fmt.Sprintf("Unknown expiry token: %x", uint64(e))
 }
 
 type ErrorDecodeInconsistentOffset struct {
