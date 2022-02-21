@@ -845,9 +845,9 @@ func (mediator *Mediator) initializeMessages(modemId string) {
 						break
 					}
 				}
-			}
 
-			startTelepathyHandlers = true
+				startTelepathyHandlers = true
+			}
 
 		default:
 			log.Printf("Unknown MMSState.State: %s", mmsState.State)
