@@ -307,6 +307,11 @@ func NewMNotificationInd(received time.Time) *MNotificationInd {
 	return &MNotificationInd{Type: TYPE_NOTIFICATION_IND, UUID: GenUUID(), Received: received}
 }
 
+func (mNotificationInd *MNotificationInd) Copy() *MNotificationInd {
+	var mni MNotificationInd = *mNotificationInd
+	return &mni
+}
+
 func (mNotificationInd *MNotificationInd) IsLocal() bool {
 	log.Printf("MNotificationInd.IsLocal() is deprecated, use MNotificationInd.IsDebug() instead")
 	return mNotificationInd.IsDebug()

@@ -229,3 +229,27 @@ func TestMNotificationInd_PopDebugError(t *testing.T) {
 		})
 	}
 }
+
+func TestMNotificationInd_Copy(t *testing.T) {
+	mni := &MNotificationInd{
+		nil,                // mms.MMSReader
+		"UUID",             // string
+		"RedownloadOfUUID", // string
+		time.Now(),         // Received time.Time
+		'T', 'V', 'C', 'R', // Type, Version, Class, DeliveryReport byte
+		'x', 'X', // ReplyCharging, ReplyChargingDeadline byte
+		'P',                                //Priority byte
+		"ReplyChargingId",                  // string
+		"TransactionId", "ContentLocation", // string
+		"From", "Subject", // string
+		time.Now(), // Expiry time.Time
+		1024,       // Size uint64
+	}
+	mniCpy := mni.Copy()
+	if mni == mniCpy {
+		t.Errorf("original %p and copy %p point to the same structure", mni, mniCpy)
+	}
+	if *mni != *mniCpy {
+		t.Errorf("structure data is not equal after copy\noriginal:\n\t%v\n and copy: \n\t%v", mni, mniCpy)
+	}
+}

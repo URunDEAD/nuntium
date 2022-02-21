@@ -741,9 +741,9 @@ func (mediator *Mediator) initializeMessages(modemId string) {
 
 			if mmsState.TelepathyErrorNotified == false { // Telepathy service wasn't notified of the download error.
 				// Handle as new MNotificationInd and send to NewMNotificationInd channel.
-				go func() {
-					mediator.NewMNotificationInd <- mmsState.MNotificationInd
-				}()
+				go func(mni *mms.MNotificationInd) {
+					mediator.NewMNotificationInd <- mni
+				}(mmsState.MNotificationInd.Copy())
 				break
 			} else { // Telepathy was already notified of the error.
 				if checkExpiredAndHandle() {
