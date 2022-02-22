@@ -146,16 +146,18 @@ func (service *MMSService) watchMessageRedownloadCalls() {
 			continue
 		}
 
+		// Create new mNotificationInd with info about redownload.
+		newMNotificationInd := mmsState.MNotificationInd.Copy()
+		newMNotificationInd.RedownloadOfUUID = mmsState.MNotificationInd.UUID
+		newMNotificationInd.UUID = mms.GenUUID()
+		storage.Create(mmsState.ModemId, newMNotificationInd)
+
 		// Stop previous message handling, remove and notify.
 		if err := service.MessageRemoved(msgObjectPath); err != nil {
 			log.Printf("Redownload of %s warning: removing message error: %v", string(msgObjectPath), err)
 		}
 
 		// Start new mNotificationInd handling as if pushed from MMS service, but with info about redownload.
-		newMNotificationInd := mmsState.MNotificationInd
-		newMNotificationInd.RedownloadOfUUID = mmsState.MNotificationInd.UUID
-		newMNotificationInd.UUID = mms.GenUUID()
-		storage.Create(mmsState.ModemId, newMNotificationInd)
 		service.mNotificationIndChan <- newMNotificationInd
 	}
 }
