@@ -27,11 +27,11 @@ import (
 	"log"
 	"time"
 
-	"launchpad.net/udm"
+	"gitlab.com/ubports/core/go-ldm"
 )
 
 func (pdu *MNotificationInd) DownloadContent(proxyHost string, proxyPort int32) (string, error) {
-	downloadManager, err := udm.NewDownloadManager()
+	downloadManager, err := ldm.NewDownloadManager()
 	if err != nil {
 		return "", err
 	}
@@ -60,11 +60,11 @@ func (pdu *MNotificationInd) DownloadContent(proxyHost string, proxyPort int32) 
 }
 
 func Upload(file, msc, proxyHost string, proxyPort int32) (string, error) {
-	udm, err := udm.NewUploadManager()
+	ldm, err := ldm.NewUploadManager()
 	if err != nil {
 		return "", err
 	}
-	upload, err := udm.CreateMmsUpload(msc, file, proxyHost, proxyPort)
+	upload, err := ldm.CreateMmsUpload(msc, file, proxyHost, proxyPort)
 	if err != nil {
 		return "", err
 	}
