@@ -15,15 +15,17 @@ DEB_HOST_ARCH := $(shell dpkg-architecture -qDEB_HOST_ARCH)
 %:
 	dh $@ \
 		--buildsystem=golang \
-		--with=golang \
-		--fail-missing
+		--with=golang
 
 override_dh_auto_test:
 # The test runners panic when running on powerpc64.
 ifneq ($(DEB_HOST_ARCH),powerpc)
 	dh_auto_test
 endif
-	
+
+override_dh_missing:
+	dh_missing --fail-missing
+
 override_dh_auto_install:
 	dh_auto_install -O--buildsystem=golang
 	sh debian/cleanup.sh ${CURDIR}/debian/tmp $(DH_GOPKG)

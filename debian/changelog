@@ -1,3 +1,12 @@
+nuntium (1.5+ubports1) UNRELEASED; urgency=medium
+
+  * Update to dh version 12
+  * Convert to source format 3.0 (native)
+  * Update VCS URLs, homepage
+  * Fix dependencies
+
+ -- Guido Berhoerster <guido+gitlab.com@berhoerster.name>  Tue, 22 Feb 2022 14:57:06 +0100
+
 nuntium (1.4+ubports1) xenial; urgency=medium
 
   * Imported to UBports
