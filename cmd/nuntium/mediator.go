@@ -717,21 +717,6 @@ func (mediator *Mediator) initializeMessages(modemId string) {
 			mediator.unrespondedTransactions[mmsState.MNotificationInd.TransactionId] = uuid
 		}
 
-		checkExpiredAndHandle := func() bool {
-			if !mmsState.MNotificationInd.Expired() {
-				return false
-			}
-
-			// MNotificationInd is expired, destroy in storage & notify telepathy service.
-			if err := storage.Destroy(uuid); err != nil {
-				log.Printf("Error destroying expired message: %v", err)
-			}
-			if err := mediator.telepathyService.SingnalMessageRemoved(mediator.telepathyService.GenMessagePath(uuid)); err != nil {
-				log.Printf("Error sending signal that message was removed: %v", err)
-			}
-			return true
-		}
-
 		startTelepathyHandlers := false
 		checkInHistoryService := true
 		switch mmsState.State {
@@ -745,17 +730,27 @@ func (mediator *Mediator) initializeMessages(modemId string) {
 					mediator.NewMNotificationInd <- mni
 				}(mmsState.MNotificationInd.Copy())
 				break
-			} else { // Telepathy was already notified of the error.
-				if checkExpiredAndHandle() {
-					// Message is expired (and was deleted from storage), don't continue.
-					// Remove from unrespondedTransactions.
-					delete(mediator.unrespondedTransactions, mmsState.MNotificationInd.TransactionId)
-					break
-				}
-
-				startTelepathyHandlers = true
 			}
 
+			// Telepathy was already notified of the error.
+
+			if !mmsState.MNotificationInd.Expired() {
+				// MNotificationInd is not expired, mark to start message handlers after the switch to handle re-download and end the switch.
+				startTelepathyHandlers = true
+				break
+			}
+
+			// MNotificationInd is expired, destroy in storage & notify telepathy service.
+			if err := storage.Destroy(uuid); err != nil {
+				log.Printf("Error destroying expired message: %v", err)
+			}
+			if err := mediator.telepathyService.SingnalMessageRemoved(mediator.telepathyService.GenMessagePath(uuid)); err != nil {
+				log.Printf("Error sending signal that message was removed: %v", err)
+			}
+			// Remove from unrespondedTransactions.
+			delete(mediator.unrespondedTransactions, mmsState.MNotificationInd.TransactionId)
+
+			break
 		case storage.DOWNLOADED:
 			// Message download was successful, but there was some decoding or forwarding to telepathy error, which was probably communicated to telepathy.
 			// The user has no possibility to initiate redownload and there is a possibility, that a new notification with the same TransactionId arrives from MMS center.
