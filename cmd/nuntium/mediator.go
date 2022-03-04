@@ -796,7 +796,7 @@ func (mediator *Mediator) initializeMessages(modemId string) {
 
 			respondedUpdated := false
 			if respondErr != nil {
-				log.Printf("Error responding to MMS center: %s", err)
+				log.Printf("Error responding to MMS center: %v", respondErr)
 			} else {
 				// Store that message was responded.
 				if mmsState, err = storage.UpdateResponded(mmsState.MNotificationInd.UUID); err != nil {
