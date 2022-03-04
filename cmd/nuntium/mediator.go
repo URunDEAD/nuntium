@@ -34,6 +34,7 @@ import (
 	"github.com/ubports/nuntium/ofono"
 	"github.com/ubports/nuntium/storage"
 	"github.com/ubports/nuntium/telepathy"
+	"github.com/ubports/nuntium/telepathy/history"
 	"launchpad.net/go-dbus/v1"
 )
 
@@ -717,6 +718,34 @@ func (mediator *Mediator) initializeMessages(modemId string) {
 			mediator.unrespondedTransactions[mmsState.MNotificationInd.TransactionId] = uuid
 		}
 
+		// Get message from history service and if pending, try to re-download.
+		eventId := string(mediator.telepathyService.GenMessagePath(uuid))
+		hsMessage, hsErr := historyService.GetMessage(eventId)
+		if hsErr != nil {
+			log.Printf("Error getting message %s from HistoryService: %v", eventId, hsErr)
+		}
+
+		// Check for status of message in history-service and if status is Pending then re-download the message.
+		if status, err := hsMessage.Status(); err != nil {
+			log.Printf("Unable to get message's %s status from HistoryService: %v", eventId, err)
+		} else if status == history.MessageStatusPending {
+			log.Printf("Message %v status is pending in HistoryService, try to download again", eventId)
+			// Handle as new MNotificationInd and send to NewMNotificationInd channel.
+			go func(mId string, mni *mms.MNotificationInd) {
+				mni.RedownloadOfUUID = mni.UUID
+				mni.UUID = mms.GenUUID()
+				if _, err := storage.Create(mId, mni); err != nil {
+					log.Printf("Error creating message in storage during message initialization: %v", err)
+				}
+				if err := storage.Destroy(mni.RedownloadOfUUID); err != nil {
+					log.Printf("Error destroying pending message: %v", err)
+				}
+				mediator.NewMNotificationInd <- mni
+			}(mmsState.ModemId, mmsState.MNotificationInd.Copy())
+			// This message is handled, continue with next one.
+			continue
+		}
+
 		startTelepathyHandlers := false
 		checkInHistoryService := true
 		switch mmsState.State {
@@ -814,29 +843,26 @@ func (mediator *Mediator) initializeMessages(modemId string) {
 			delete(mediator.unrespondedTransactions, mmsState.MNotificationInd.TransactionId)
 
 			if checkInHistoryService {
-				// Get message from history service and if read or not exist, delete and don't spawn handlers.
-				eventId := string(mediator.telepathyService.GenMessagePath(uuid))
-				hsMessage, err := historyService.GetMessage(eventId)
-				if err != nil {
-					log.Printf("Error getting message %s from HistoryService: %v", eventId, err)
-				} else {
-					// If message is doesn't exist, break (don't spawn handlers).
+				// Check message from HistoryService and if it was read or does not exist, delete it and don't spawn handlers.
+
+				if hsErr != nil { // There was no error requesting message from HistoryService.
 					if !hsMessage.Exists() {
 						log.Printf("Message %s doesn't exist in HistoryService, no need to store, deleting.", uuid)
 						if err := storage.Destroy(uuid); err != nil {
 							log.Printf("Error destroying message: %v", err)
 						}
+						// The message doesn't exist in HistoryService, break (don't spawn handlers).
 						break
 					}
 
-					// If message is marked as read (is not new), break (don't spawn handlers).
 					if isnew, err := hsMessage.IsNew(); err != nil {
-						log.Printf("Error checking if message is new in HistoryService: %s", err)
+						log.Printf("Error checking if message is new in HistoryService: %v", err)
 					} else if isnew == false {
 						log.Printf("Message %s is marked as read in HistoryService, no need to store, deleting.", uuid)
 						if err := storage.Destroy(uuid); err != nil {
 							log.Printf("Error destroying message: %v", err)
 						}
+						// The message is marked as read (is not new), break (don't spawn handlers).
 						break
 					}
 				}
