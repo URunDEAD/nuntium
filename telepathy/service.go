@@ -150,7 +150,9 @@ func (service *MMSService) watchMessageRedownloadCalls() {
 		newMNotificationInd := mmsState.MNotificationInd.Copy()
 		newMNotificationInd.RedownloadOfUUID = mmsState.MNotificationInd.UUID
 		newMNotificationInd.UUID = mms.GenUUID()
-		storage.Create(mmsState.ModemId, newMNotificationInd)
+		if _, err := storage.Create(mmsState.ModemId, newMNotificationInd); err != nil {
+			log.Printf("Error creating message in storage during redownload: %v", err)
+		}
 
 		// Stop previous message handling, remove and notify.
 		if err := service.MessageRemoved(msgObjectPath); err != nil {
