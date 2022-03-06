@@ -154,12 +154,12 @@ func (service *MMSService) watchMessageRedownloadCalls() {
 			log.Printf("Error creating message in storage during redownload: %v", err)
 		}
 
-		// Stop previous message handling, remove and notify.
+		// Stop previous message handling, remove from storage and signal that message was removed.
 		if err := service.MessageRemoved(msgObjectPath); err != nil {
 			log.Printf("Redownload of %s warning: removing message error: %v", string(msgObjectPath), err)
 		}
 
-		// Start new mNotificationInd handling as if pushed from MMS service, but with info about redownload.
+		// Start mNotificationInd handling as if pushed from MMS service.
 		service.mNotificationIndChan <- newMNotificationInd
 	}
 }

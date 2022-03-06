@@ -752,8 +752,8 @@ func (mediator *Mediator) initializeMessages(modemId string) {
 			continue
 		}
 
-		startTelepathyHandlers := false
-		checkInHistoryService := true
+		startTelepathyHandlers := false // Should start handlers after following switch statement.
+		checkInHistoryService := true   // If switch ends in the RESPONDED case, check the message in history-service to initiate cleanup if needed.
 		switch mmsState.State {
 		case storage.NOTIFICATION:
 			log.Printf("Process message state: %s", mmsState.State)
@@ -813,10 +813,14 @@ func (mediator *Mediator) initializeMessages(modemId string) {
 			}
 
 			if !forwardedUpdated {
+				// Message failed to reach telepathy again. Can't do anything about it. Maybe next time.
+				// Spawn handlers for the message later, just in case there was an error message communicated before.
 				startTelepathyHandlers = true
 				break
 			}
 
+			// The message was successfully communicated to telepathy and it's inner state is now RECEIVED.
+			// Fallthrough to next step, to try to respond to MMS center about receiving the message.
 			fallthrough
 		case storage.RECEIVED:
 			log.Printf("Process message state: %s", mmsState.State)
@@ -844,10 +848,14 @@ func (mediator *Mediator) initializeMessages(modemId string) {
 			}
 
 			if !respondedUpdated {
+				// MMS center failed to be notified about receiving the message again. Can't do anything about it. Maybe next time.
+				// Spawn handlers for the message later, just in case there was an error message communicated before.
 				startTelepathyHandlers = true
 				break
 			}
 
+			// MMS center was successfully notified about receiving the message and it's inner state is now RESPONDED.
+			// Fallthrough to next step, to remove the message from unresponded transactions list.
 			fallthrough
 		case storage.RESPONDED:
 			log.Printf("Process message state: %s", mmsState.State)
@@ -856,6 +864,7 @@ func (mediator *Mediator) initializeMessages(modemId string) {
 			// Remove from unrespondedTransactions.
 			delete(mediator.unrespondedTransactions, mmsState.MNotificationInd.TransactionId)
 
+			// Skip starting handlers and history service deletion checks and following cleanup, if the message recovered from error right now (was in DOWNLOADED state at beginning and did fallthrough in here).
 			if checkInHistoryService {
 				// Check message from HistoryService and if it was read or does not exist, delete it and don't spawn handlers.
 
@@ -881,6 +890,7 @@ func (mediator *Mediator) initializeMessages(modemId string) {
 					}
 				}
 
+				// Start handlers after switch.
 				startTelepathyHandlers = true
 			}
 
