@@ -1,3 +1,19 @@
+nuntium (2.1) UNRELEASED; urgency=medium
+
+  * Refactor and add logging and comments to the message initialization
+  * Re-download messages that have pending status in history-service 
+    upon message initialization
+  * Add message status field, contants, functions and tests to 
+    telepathy/history package
+  * Move new message storage creation before old message storage
+    deletion on message redownload
+  * Fix logging the wrong error in message initialization
+  * Fix unnecessary message handlers starting at initialization
+  * Fix go function called during initialization
+  * Fix recursive printing calls in error structures
+
+ -- jEzEk <jezek@chicki.sk>  Wed, 9 Mar 2022 18:03:00 +0200
+
 nuntium (2.0.1) UNRELEASED; urgency=medium
 
   * Update to dh version 12
@@ -13,8 +29,8 @@ nuntium (2.0) xenial; urgency=medium
   * Send error message to telepathy-ofono on failed MN handling
   * Listen to and handle re-download requests of failed MN
   * Handle MNs with the same id to prevent duplicate user notifications
-  * Change MN Expiry field format and handle absolute/relative token during
-  	decoding
+  * Change MN Expiry field format and handle absolute/relative token
+    during decoding
   * Storage cleanup and MN error recovery on application start
   * Introduce new flags for the nuntium-inject-push command
   * Update architecture documentation.
