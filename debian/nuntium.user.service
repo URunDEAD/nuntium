@@ -1,0 +1,13 @@
+[Unit]
+Description=nuntium service binds ofono and telepathy-ofono for MMS
+StartLimitIntervalSec=10
+StartLimitBurst=10
+
+[Service]
+Type=dbus
+ExecStart=/usr/bin/nuntium
+BusName=org.ofono.mms
+Restart=always
+
+[Install]
+WantedBy=graphical-session.target
