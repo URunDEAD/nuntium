@@ -34,6 +34,7 @@ import (
 	"github.com/ubports/nuntium/ofono"
 	"github.com/ubports/nuntium/storage"
 	"github.com/ubports/nuntium/telepathy"
+	"github.com/ubports/nuntium/telepathy/history"
 	"launchpad.net/go-dbus/v1"
 )
 
@@ -170,7 +171,9 @@ func (mediator *Mediator) handlePushAgentNotification(pushMsg *ofono.PushPDU, mo
 		}
 	}
 
-	storage.Create(modemId, mNotificationInd)
+	if _, err := storage.Create(modemId, mNotificationInd); err != nil {
+		log.Printf("Error creating message in storage during push agent notification handling: %v", err)
+	}
 	mediator.NewMNotificationInd <- mNotificationInd
 }
 
@@ -213,6 +216,7 @@ func (mediator *Mediator) debugMMSContextError(mNotificationInd *mms.MNotificati
 }
 
 func (mediator *Mediator) handleMNotificationInd(mNotificationInd *mms.MNotificationInd) {
+	log.Printf("Mediator %s is handling a MNotificationInd with UUID: %s", mediator.modem.Modem, mNotificationInd.UUID)
 	mediator.contextLock.Lock()
 	defer mediator.contextLock.Unlock()
 
@@ -297,6 +301,7 @@ func (mediator *Mediator) handleMNotificationInd(mNotificationInd *mms.MNotifica
 		// TODO deferred case
 		filePath := mediator.handleMNotifyRespInd(mNotifyRespInd)
 		if filePath == "" {
+			log.Println("No filePath returned when handling m-notifyresp.ind")
 			return
 		}
 		if err := mediator.sendMNotifyRespInd(filePath, &mmsContext); err != nil {
@@ -664,9 +669,10 @@ func (mediator *Mediator) initializeMessages(modemId string) {
 	uuids := storage.GetStoredUUIDs()
 	log.Printf("Initializing %d messages from storage", len(uuids))
 	for _, uuid := range uuids {
+		log.Printf("Initializing message with UUID: %s", uuid)
 		mmsState, err := storage.GetMMSState(uuid)
 		if err != nil {
-			log.Printf("Error checking state of message stored under UUID: %s : %v", uuid, err)
+			log.Printf("Error checking state of message: %v", err)
 			if err := storage.Destroy(uuid); err != nil {
 				log.Printf("Error destroying faulty message: %v", err)
 			}
@@ -674,13 +680,13 @@ func (mediator *Mediator) initializeMessages(modemId string) {
 		}
 
 		if !mmsState.IsIncoming() {
-			log.Printf("Message %s is not an incoming message. State: %s", uuid, mmsState.State)
+			log.Printf("Message is not an incoming message, skipping. (State: %s)", mmsState.State)
 			continue
 		}
 
 		// Housekeeping. Delete all old stored incoming messages, which are missing the ModemId.
 		if mmsState.ModemId == "" {
-			log.Printf("Message %s is an old incoming message with state %s, no need to store, deleting", uuid, mmsState.State)
+			log.Printf("Message is an old incoming message, no need to store, deleting. (State: %s)", mmsState.State)
 			if err := storage.Destroy(uuid); err != nil {
 				log.Printf("Error destroying old message: %v", err)
 			}
@@ -688,6 +694,7 @@ func (mediator *Mediator) initializeMessages(modemId string) {
 		}
 
 		if modemId != mmsState.ModemId {
+			log.Printf("Message does not belong to modem %s. (ModemId: %s)", modemId, mmsState.ModemId)
 			continue
 		}
 		// Just log any irregularities here.
@@ -705,7 +712,7 @@ func (mediator *Mediator) initializeMessages(modemId string) {
 		if mmsState.MNotificationInd.TransactionId != "" {
 			if _, ok := handledTransactions[mmsState.MNotificationInd.TransactionId]; ok {
 				// TransactionId was already handled. This message is duplicate and obsolete. Delete and handle next.
-				log.Printf("Message %s is an duplicate incoming message with transaction ID %s that was already handled, no need to store, deleting", uuid, mmsState.MNotificationInd.TransactionId)
+				log.Printf("Message is an duplicate incoming message with transaction ID %s that was already handled, no need to store, deleting", mmsState.MNotificationInd.TransactionId)
 				if err := storage.Destroy(uuid); err != nil {
 					log.Printf("Error destroying duplicate message: %v", err)
 				}
@@ -717,11 +724,60 @@ func (mediator *Mediator) initializeMessages(modemId string) {
 			mediator.unrespondedTransactions[mmsState.MNotificationInd.TransactionId] = uuid
 		}
 
-		checkExpiredAndHandle := func() bool {
-			if !mmsState.MNotificationInd.Expired() {
-				return false
+		// Get message from history service and if pending, try to re-download.
+		eventId := string(mediator.telepathyService.GenMessagePath(uuid))
+		hsMessage, hsErr := historyService.GetMessage(eventId)
+		if hsErr != nil {
+			log.Printf("Error getting message %s from HistoryService: %v", eventId, hsErr)
+		}
+
+		// Check for status of message in history-service and if status is Pending then re-download the message.
+		if status, err := hsMessage.Status(); err != nil {
+			log.Printf("Unable to get message's %s status from HistoryService: %v", eventId, err)
+		} else if status == history.MessageStatusPending {
+			log.Printf("Message %v status is pending in HistoryService, try to download again", eventId)
+			// Handle as new MNotificationInd and send to NewMNotificationInd channel.
+			go func(mId string, mni *mms.MNotificationInd) {
+				mni.RedownloadOfUUID = mni.UUID
+				mni.UUID = mms.GenUUID()
+				if _, err := storage.Create(mId, mni); err != nil {
+					log.Printf("Error creating message in storage during message initialization: %v", err)
+				}
+				if err := storage.Destroy(mni.RedownloadOfUUID); err != nil {
+					log.Printf("Error destroying pending message: %v", err)
+				}
+				mediator.NewMNotificationInd <- mni
+			}(mmsState.ModemId, mmsState.MNotificationInd.Copy())
+			// This message is handled, continue with next one.
+			continue
+		}
+
+		startTelepathyHandlers := false // Should start handlers after following switch statement.
+		checkInHistoryService := true   // If switch ends in the RESPONDED case, check the message in history-service to initiate cleanup if needed.
+		switch mmsState.State {
+		case storage.NOTIFICATION:
+			log.Printf("Process message state: %s", mmsState.State)
+			// Message download failed, error was probably communicated to telepathy.
+			// It is now up to user to initiate redownload or there is a possibility, that a new notification with the same TransactionId arrives from MMS center.
+
+			if mmsState.TelepathyErrorNotified == false { // Telepathy service wasn't notified of the download error.
+				log.Printf("Message error was not communicated to telepathy service, try to handle the message again")
+				// Handle as new MNotificationInd and send to NewMNotificationInd channel.
+				go func(mni *mms.MNotificationInd) {
+					mediator.NewMNotificationInd <- mni
+				}(mmsState.MNotificationInd.Copy())
+				break
 			}
 
+			// Telepathy was already notified of the error.
+
+			if !mmsState.MNotificationInd.Expired() {
+				// MNotificationInd is not expired, mark to start message handlers after the switch to handle re-download and end the switch.
+				startTelepathyHandlers = true
+				break
+			}
+
+			log.Printf("Message has been expired, deleting. (Expire: %s)", mmsState.MNotificationInd.Expire())
 			// MNotificationInd is expired, destroy in storage & notify telepathy service.
 			if err := storage.Destroy(uuid); err != nil {
 				log.Printf("Error destroying expired message: %v", err)
@@ -729,34 +785,12 @@ func (mediator *Mediator) initializeMessages(modemId string) {
 			if err := mediator.telepathyService.SingnalMessageRemoved(mediator.telepathyService.GenMessagePath(uuid)); err != nil {
 				log.Printf("Error sending signal that message was removed: %v", err)
 			}
-			return true
-		}
+			// Remove from unrespondedTransactions.
+			delete(mediator.unrespondedTransactions, mmsState.MNotificationInd.TransactionId)
 
-		startTelepathyHandlers := false
-		checkInHistoryService := true
-		switch mmsState.State {
-		case storage.NOTIFICATION:
-			// Message download failed, error was probably communicated to telepathy.
-			// It is now up to user to initiate redownload or there is a possibility, that a new notification with the same TransactionId arrives from MMS center.
-
-			if mmsState.TelepathyErrorNotified == false { // Telepathy service wasn't notified of the download error.
-				// Handle as new MNotificationInd and send to NewMNotificationInd channel.
-				go func() {
-					mediator.NewMNotificationInd <- mmsState.MNotificationInd
-				}()
-				break
-			} else { // Telepathy was already notified of the error.
-				if checkExpiredAndHandle() {
-					// Message is expired (and was deleted from storage), don't continue.
-					// Remove from unrespondedTransactions.
-					delete(mediator.unrespondedTransactions, mmsState.MNotificationInd.TransactionId)
-					break
-				}
-
-				startTelepathyHandlers = true
-			}
-
+			break
 		case storage.DOWNLOADED:
+			log.Printf("Process message state: %s", mmsState.State)
 			// Message download was successful, but there was some decoding or forwarding to telepathy error, which was probably communicated to telepathy.
 			// The user has no possibility to initiate redownload and there is a possibility, that a new notification with the same TransactionId arrives from MMS center.
 
@@ -770,6 +804,7 @@ func (mediator *Mediator) initializeMessages(modemId string) {
 				if mmsState, err = storage.UpdateReceived(mRetrieveConf.UUID); err != nil {
 					log.Println("Error updating storage (UpdateReceived): ", err)
 				} else {
+					log.Printf("Message was forwarded to telepathy service")
 					// Message was forwarded to telepathy and state in storage was updated.
 					forwardedUpdated = true
 					// If this message falls through to RESPONDED, don't check if message is in history service, cause it probably hasn't arrived there yet.
@@ -778,12 +813,17 @@ func (mediator *Mediator) initializeMessages(modemId string) {
 			}
 
 			if !forwardedUpdated {
+				// Message failed to reach telepathy again. Can't do anything about it. Maybe next time.
+				// Spawn handlers for the message later, just in case there was an error message communicated before.
 				startTelepathyHandlers = true
 				break
 			}
 
+			// The message was successfully communicated to telepathy and it's inner state is now RECEIVED.
+			// Fallthrough to next step, to try to respond to MMS center about receiving the message.
 			fallthrough
 		case storage.RECEIVED:
+			log.Printf("Process message state: %s", mmsState.State)
 			// Message download was successful, the message was decoded and forwarded to telepathy but MMS center was not notified.
 			// There is a possibility, that a new notification with the same TransactionId arrives from MMS center.
 
@@ -796,58 +836,63 @@ func (mediator *Mediator) initializeMessages(modemId string) {
 
 			respondedUpdated := false
 			if respondErr != nil {
-				log.Printf("Error responding to MMS center: %s", err)
+				log.Printf("Error responding to MMS center: %v", respondErr)
 			} else {
 				// Store that message was responded.
 				if mmsState, err = storage.UpdateResponded(mmsState.MNotificationInd.UUID); err != nil {
 					log.Println("Error updating storage (UpdateResponded): ", err)
 				} else {
+					log.Printf("The NMS center was notified, that the message was delivered")
 					respondedUpdated = true
 				}
 			}
 
 			if !respondedUpdated {
+				// MMS center failed to be notified about receiving the message again. Can't do anything about it. Maybe next time.
+				// Spawn handlers for the message later, just in case there was an error message communicated before.
 				startTelepathyHandlers = true
 				break
 			}
 
+			// MMS center was successfully notified about receiving the message and it's inner state is now RESPONDED.
+			// Fallthrough to next step, to remove the message from unresponded transactions list.
 			fallthrough
 		case storage.RESPONDED:
+			log.Printf("Process message state: %s", mmsState.State)
 			// Message download was successful, the message was decoded and forwarded to telepathy and MMS center was notified.
 
 			// Remove from unrespondedTransactions.
 			delete(mediator.unrespondedTransactions, mmsState.MNotificationInd.TransactionId)
 
+			// Skip starting handlers and history service deletion checks and following cleanup, if the message recovered from error right now (was in DOWNLOADED state at beginning and did fallthrough in here).
 			if checkInHistoryService {
-				// Get message from history service and if read or not exist, delete and don't spawn handlers.
-				eventId := string(mediator.telepathyService.GenMessagePath(uuid))
-				hsMessage, err := historyService.GetMessage(eventId)
-				if err != nil {
-					log.Printf("Error getting message %s from HistoryService: %v", eventId, err)
-				} else {
-					// If message is doesn't exist, break (don't spawn handlers).
+				// Check message from HistoryService and if it was read or does not exist, delete it and don't spawn handlers.
+
+				if hsErr != nil { // There was no error requesting message from HistoryService.
 					if !hsMessage.Exists() {
 						log.Printf("Message %s doesn't exist in HistoryService, no need to store, deleting.", uuid)
 						if err := storage.Destroy(uuid); err != nil {
 							log.Printf("Error destroying message: %v", err)
 						}
+						// The message doesn't exist in HistoryService, break (don't spawn handlers).
 						break
 					}
 
-					// If message is marked as read (is not new), break (don't spawn handlers).
 					if isnew, err := hsMessage.IsNew(); err != nil {
-						log.Printf("Error checking if message is new in HistoryService: %s", err)
+						log.Printf("Error checking if message is new in HistoryService: %v", err)
 					} else if isnew == false {
 						log.Printf("Message %s is marked as read in HistoryService, no need to store, deleting.", uuid)
 						if err := storage.Destroy(uuid); err != nil {
 							log.Printf("Error destroying message: %v", err)
 						}
+						// The message is marked as read (is not new), break (don't spawn handlers).
 						break
 					}
 				}
-			}
 
-			startTelepathyHandlers = true
+				// Start handlers after switch.
+				startTelepathyHandlers = true
+			}
 
 		default:
 			log.Printf("Unknown MMSState.State: %s", mmsState.State)
@@ -855,13 +900,13 @@ func (mediator *Mediator) initializeMessages(modemId string) {
 		}
 
 		if startTelepathyHandlers {
+			log.Printf("Starting telepathy handlers for message")
 			mRetrieveConf, _ := mediator.getMRetrieveConf(uuid)
 			if err := mediator.telepathyService.InitializationMessageAdded(mRetrieveConf, mmsState.MNotificationInd); err != nil {
-				log.Printf("Error adding initialization message for message %s: %v", uuid, err)
+				log.Printf("Error adding initialization message: %v", err)
 			}
 		}
 	}
-
 }
 
 // Responds to MMS center, that message was successfully downloaded.

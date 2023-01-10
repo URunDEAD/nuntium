@@ -6,6 +6,30 @@ import (
 	"launchpad.net/go-dbus/v1"
 )
 
+type MessageStatus int64
+
+// Should match MessageStatus enum in https://gitlab.com/ubports/core/history-service/-/blob/main/src/types.h#L60
+const (
+	MessageStatusUnknown MessageStatus = iota
+	MessageStatusDelivered
+	MessageStatusTemporarilyFailed
+	MessageStatusPermanentlyFailed
+	MessageStatusAccepted
+	MessageStatusRead
+	MessageStatusDeleted
+	MessageStatusPending
+	MessageStatusDraft
+	_MessageStatusPadding
+)
+
+type MessageField string
+
+// Should have it's counterpart in https://gitlab.com/ubports/core/history-service/-/blob/main/src/types.h
+const (
+	FieldNewEvent      MessageField = "newEvent"
+	FieldMessageStatus MessageField = "messageStatus"
+)
+
 type Message map[string]dbus.Variant
 
 func (m Message) Exists() bool {
@@ -33,15 +57,45 @@ func (m Message) IsNew() (bool, error) {
 	if !m.Exists() {
 		return false, ErrorNonExistentMessage
 	}
-	v, ok := m["newEvent"]
+	v, ok := m[string(FieldNewEvent)]
 	if !ok {
-		return false, ErrorMessagePropertyMissing("newEvent")
+		return false, ErrorMessagePropertyMissing(string(FieldNewEvent))
 	}
 
 	newEvent, ok := v.Value.(bool)
 	if !ok {
-		return false, ErrorMessagePropertyType{"newEvent", false, v.Value}
+		return false, ErrorMessagePropertyType{string(FieldNewEvent), bool(false), v.Value}
 	}
 
 	return newEvent, nil
+}
+
+type ErrorUnknownMessageStatus int64
+
+func (e ErrorUnknownMessageStatus) Error() string {
+	return fmt.Sprintf("Unknown message status: %d", int(e))
+}
+
+func messageStatusFromInt(i int64) (MessageStatus, error) {
+	if i < int64(MessageStatusUnknown) || i > int64(_MessageStatusPadding) {
+		return 0, ErrorUnknownMessageStatus(i)
+	}
+	return MessageStatus(i), nil
+}
+
+func (m Message) Status() (MessageStatus, error) {
+	if !m.Exists() {
+		return 0, ErrorNonExistentMessage
+	}
+	v, ok := m[string(FieldMessageStatus)]
+	if !ok {
+		return 0, ErrorMessagePropertyMissing(string(FieldMessageStatus))
+	}
+
+	status, ok := v.Value.(int64)
+	if !ok {
+		return 0, ErrorMessagePropertyType{string(FieldMessageStatus), int64(0), v.Value}
+	}
+
+	return messageStatusFromInt(status)
 }
