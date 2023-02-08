@@ -597,14 +597,14 @@ func (service *MMSService) GenMessagePath(uuid string) dbus.ObjectPath {
 // Under the hood, DBus service property is read, if something fails, error is returned.
 //
 // dbus-send --session --print-reply \
-//     --dest=com.ubuntu.connectivity1 \
-//     /com/ubuntu/connectivity1/Private \
+//     --dest=com.lomiri.connectivity1 \
+//     /com/lomiri/connectivity1/Private \
 //     org.freedesktop.DBus.Properties.Get \
-// string:com.ubuntu.connectivity1.Private \
+// string:com.lomiri.connectivity1.Private \
 // 	string:'MobileDataEnabled'
 func (service *MMSService) MobileDataEnabled() (bool, error) {
-	call := dbus.NewMethodCallMessage("com.ubuntu.connectivity1", "/com/ubuntu/connectivity1/Private", "org.freedesktop.DBus.Properties", "Get")
-	call.AppendArgs("com.ubuntu.connectivity1.Private", "MobileDataEnabled")
+	call := dbus.NewMethodCallMessage("com.lomiri.connectivity1", "/com/lomiri/connectivity1/Private", "org.freedesktop.DBus.Properties", "Get")
+	call.AppendArgs("com.lomiri.connectivity1.Private", "MobileDataEnabled")
 	reply, err := service.conn.SendWithReply(call)
 	if err != nil {
 		return false, fmt.Errorf("send with reply error: %w", err)
@@ -620,7 +620,7 @@ func (service *MMSService) MobileDataEnabled() (bool, error) {
 
 	enabled, ok := msg.Value.(bool)
 	if !ok {
-		return false, fmt.Errorf("decoded variant does not contain bool vale: %#v", msg)
+		return false, fmt.Errorf("decoded variant does not contain bool value: %#v", msg)
 	}
 	return enabled, nil
 }
