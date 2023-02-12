@@ -18,7 +18,7 @@ func NewHistoryService(conn *dbus.Connection) *HistoryService {
 
 // Returns message identified by parameters from HistoryService.
 func (service *HistoryService) GetSingleMessage(accountId, threadId, eventId string) (Message, error) {
-	call := dbus.NewMethodCallMessage("com.canonical.HistoryService", "/com/canonical/HistoryService", "com.canonical.HistoryService", "GetSingleEvent")
+	call := dbus.NewMethodCallMessage("com.lomiri.HistoryService", "/com/lomiri/HistoryService", "com.lomiri.HistoryService", "GetSingleEvent")
 	eventType := int32(0) // History::EventTypeText
 	call.AppendArgs(eventType, accountId, threadId, eventId)
 	reply, err := service.conn.SendWithReply(call)
@@ -46,7 +46,7 @@ func (service *HistoryService) GetMessage(eventId string) (Message, error) {
 	}
 
 	// Get event view.
-	call := dbus.NewMethodCallMessage("com.canonical.HistoryService", "/com/canonical/HistoryService", "com.canonical.HistoryService", "QueryEvents")
+	call := dbus.NewMethodCallMessage("com.lomiri.HistoryService", "/com/lomiri/HistoryService", "com.lomiri.HistoryService", "QueryEvents")
 	eventType := int32(0) // History::EventTypeText
 	sort := map[string]dbus.Variant(nil)
 	filter := map[string]dbus.Variant{
@@ -69,9 +69,9 @@ func (service *HistoryService) GetMessage(eventId string) (Message, error) {
 	}
 
 	// Destroy event view at end.
-	// dbus-send --session --print-reply --dest=com.canonical.HistoryService /com/canonical/HistoryService/eventview2413609620210130164828892 com.canonical.HistoryService.EventView.Destroy
+	// dbus-send --session --print-reply --dest=com.lomiri.HistoryService /com/lomiri/HistoryService/eventview2413609620210130164828892 com.lomiri.HistoryService.EventView.Destroy
 	defer func() {
-		destroyCall := dbus.NewMethodCallMessage("com.canonical.HistoryService", dbus.ObjectPath(eventView), "com.canonical.HistoryService.EventView", "Destroy")
+		destroyCall := dbus.NewMethodCallMessage("com.lomiri.HistoryService", dbus.ObjectPath(eventView), "com.lomiri.HistoryService.EventView", "Destroy")
 		destroyReply, err := service.conn.SendWithReply(destroyCall)
 		if err != nil {
 			log.Printf("HistoryService.GetMessage: Destroy send error: %v", err)
@@ -84,7 +84,7 @@ func (service *HistoryService) GetMessage(eventId string) (Message, error) {
 	}()
 
 	// Check if query is valid.
-	validCall := dbus.NewMethodCallMessage("com.canonical.HistoryService", dbus.ObjectPath(eventView), "com.canonical.HistoryService.EventView", "IsValid")
+	validCall := dbus.NewMethodCallMessage("com.lomiri.HistoryService", dbus.ObjectPath(eventView), "com.lomiri.HistoryService.EventView", "IsValid")
 	validReply, err := service.conn.SendWithReply(validCall)
 	if err != nil {
 		return nil, fmt.Errorf("Request validation send error: %w", err)
@@ -101,7 +101,7 @@ func (service *HistoryService) GetMessage(eventId string) (Message, error) {
 	}
 
 	// Get message.
-	nextCall := dbus.NewMethodCallMessage("com.canonical.HistoryService", dbus.ObjectPath(eventView), "com.canonical.HistoryService.EventView", "NextPage")
+	nextCall := dbus.NewMethodCallMessage("com.lomiri.HistoryService", dbus.ObjectPath(eventView), "com.lomiri.HistoryService.EventView", "NextPage")
 	nextReply, err := service.conn.SendWithReply(nextCall)
 	if err != nil {
 		return nil, fmt.Errorf("Next page send error: %w", err)
