@@ -368,9 +368,9 @@ func (dec *MMSDecoder) ReadExpiry(reflectedPdu *reflect.Value, received time.Tim
 	return expiry, nil
 }
 
-//getParam reads the next parameter to decode and returns it if it's well known
-//or just decodes and discards if it's application specific, if the latter is
-//the case it also returns false
+// getParam reads the next parameter to decode and returns it if it's well known
+// or just decodes and discards if it's application specific, if the latter is
+// the case it also returns false
 func (dec *MMSDecoder) getParam() (byte, bool, error) {
 	if dec.Data[dec.Offset]&0x80 != 0 {
 		return dec.Data[dec.Offset] & 0x7f, true, nil
@@ -503,7 +503,12 @@ func (dec *MMSDecoder) Decode(pdu MMSReader) (err error) {
 		case MESSAGE_ID:
 			_, err = dec.ReadString(&reflectedPdu, "MessageId")
 		case SUBJECT:
-			_, err = dec.ReadEncodedString(&reflectedPdu, "Subject")
+			// we can have empty subject (0x96 0x00)
+			if dec.Data[dec.Offset+1] == 0 {
+				dec.Offset++
+			} else {
+				_, err = dec.ReadEncodedString(&reflectedPdu, "Subject")
+			}
 		case TO:
 			err = dec.ReadTo(&reflectedPdu)
 		case CC:
