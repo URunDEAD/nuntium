@@ -513,6 +513,8 @@ func (dec *MMSDecoder) Decode(pdu MMSReader) (err error) {
 			err = dec.ReadTo(&reflectedPdu)
 		case CC:
 			_, err = dec.ReadEncodedString(&reflectedPdu, "Cc")
+		case BCC:
+			_, err = dec.ReadEncodedString(&reflectedPdu, "")
 		case X_MMS_REPLY_CHARGING_ID:
 			_, err = dec.ReadString(&reflectedPdu, "ReplyChargingId")
 		case X_MMS_RETRIEVE_TEXT:
