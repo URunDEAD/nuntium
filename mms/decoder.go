@@ -368,6 +368,42 @@ func (dec *MMSDecoder) ReadExpiry(reflectedPdu *reflect.Value, received time.Tim
 	return expiry, nil
 }
 
+// ReadMessageClass will read the message class from the next position, stored either as a byte or as token text, as per OMA-TS-MMS_ENC-V1_3-20110913-A 7.3.27.
+// If the class is stored as token text, and the value is unrecognized, it is stored as ClassPersonal and a warning is logged.
+// If not nil "reflectedPdu" parameter is provided, its element "Class" will be filled.
+func (dec *MMSDecoder) ReadMessageClass(reflectedPdu *reflect.Value) (byte, error) {
+	if dec.Data[dec.Offset+1] & 0x80 != 0 {
+		// The class is stored as a byte
+		return dec.ReadByte(reflectedPdu, "Class")
+	} else {
+		// The class is stored as token text, attempt to convert to byte
+		classString, err := dec.ReadString(nil, "")
+		if err != nil {
+			return 0, err
+		}
+
+		var class byte = 0
+
+		switch classString {
+		case "Personal":
+			class = ClassPersonal
+		case "Advertisement":
+			class = ClassAdvertisement
+		case "Informational":
+			class = ClassInformational
+		case "Auto":
+			class = ClassAuto
+		default:
+			log.Printf("Encountered unrecognized message class '%s', falling back to 'Personal'", classString)
+			class = ClassPersonal
+		}
+
+		dec.setPduField(reflectedPdu, "Class", uint64(class), setterUint64)
+
+		return class, nil
+	}
+}
+
 // getParam reads the next parameter to decode and returns it if it's well known
 // or just decodes and discards if it's application specific, if the latter is
 // the case it also returns false
@@ -527,8 +563,7 @@ func (dec *MMSDecoder) Decode(pdu MMSReader) (err error) {
 			// constants.
 			_, err = dec.ReadByte(&reflectedPdu, "Version")
 		case X_MMS_MESSAGE_CLASS:
-			//TODO implement Token text form
-			_, err = dec.ReadByte(&reflectedPdu, "Class")
+			_, err = dec.ReadMessageClass(&reflectedPdu)
 		case X_MMS_REPLY_CHARGING:
 			_, err = dec.ReadByte(&reflectedPdu, "ReplyCharging")
 		case X_MMS_REPLY_CHARGING_DEADLINE:
