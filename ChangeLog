@@ -1,0 +1,1471 @@
+2023-10-15 Mike Gabriel
+
+        * Release 2.1 (HEAD -> main, tag: 2.1)
+
+2023-09-28 Ratchanan Srirattanamet
+
+        * Merge branch 'main' into 'main' (e29ccfc)
+
+2023-09-23 j1xlte-gtelwifiue
+
+        * mms-decoder: support token text X-Mms-Message-Class (36880df)
+
+2023-03-05 Mike Gabriel
+
+        * Merge branch 'lduboeuf/personal/empty_subject' into 'main'
+          (fda2c7a)
+
+2023-03-03 Lionel Duboeuf
+
+        * mms-decoder: consume BCC field (e13d12c)
+
+2023-03-01 Lionel Duboeuf
+
+        * mms-decoder: manage empty PDU subject header (5cdbfab)
+
+2023-02-12 Mike Gabriel
+
+        * Merge branch 'personal/lduboeuf/fix_namespace' into 'main'
+          (9088c29)
+
+2023-02-12 Lionel Duboeuf
+
+        * rename dbus com.canonical -> com.lomiri (90e2faf)
+
+2023-02-08 Mike Gabriel
+
+        * Merge branch 'personal/lduboeuf/fix_renaming-ubuntu' into 'main'
+          (6d46f43)
+
+2023-02-08 Lionel Duboeuf
+
+        * rename dbus com.ubuntu -> com.lomiri (054536c)
+
+2023-01-10 Mike Gabriel
+
+        * Merge branch 'focal-handle-pending-messages-on-initialization' into
+          'main' (a12372b)
+
+2022-03-09 jEzEk
+
+        * Update debian changelog (996cc7c)
+
+2022-03-06 jEzEk
+
+        * Add more comments, mainly in message initialization (b0f5ca8)
+
+2022-03-05 jEzEk
+
+        * Add more logging to message handling and initialization (ea3d247)
+
+2022-03-04 jEzEk
+
+        * Add code for re-downloading messages that have pending status in
+          history-service upon message initialization (611f174)
+
+2022-01-29 jEzEk
+
+        * Add message status field, contants, functions and tests to
+          telepathy/history package (d5aea04)
+
+2022-02-25 jEzEk
+
+        * Refactor local function in message initialization function
+          (448710d)
+
+2022-02-22 jEzEk
+
+        * Move new message storage creation before old message storage
+          deletion on message redownload (c95ef8c)
+
+2022-03-04 jEzEk
+
+        * Fix logging the wrong error in message initialization (f047355)
+
+2022-02-21 jEzEk
+
+        * Fix unnecessary message handlers starting at initialization
+          (3790e92)
+        * Fix go function called during initialization (e3c2b08)
+
+2022-02-05 jEzEk
+
+        * Fix recursive printing calls in error structures (fa7d312)
+
+2022-01-03 jEzEk
+
+        * Update debian/changelog with previous changes descriptions
+          (1eea10f)
+
+2022-08-17 Ratchanan Srirattanamet
+
+        * Merge branch 'systemd-migration' into 'main' (3b550e3)
+
+2022-08-15 Guido Berhoerster
+
+        * Convert upstart job to systemd service (9d899fc)
+
+2022-02-24 Guido Berhoerster
+
+        * Port to focal (6716ca4)
+
+2022-02-22 Guido Berhoerster
+
+        * Port to go-ldm (49ccb93)
+
+2022-02-23 Ratchanan Srirattanamet
+
+        * Move Jenkinsfile to debian/ per the new guideline (95b25bf)
+        * Update Jenkinsfile to use shared library (8cd617f)
+
+2021-12-15 Alfred E. Neumayer
+
+        * Merge pull request #8 from jezek/xenial_-_failed-redownload
+          (054848e)
+
+2021-06-08 jEzEk
+
+        * Remove forgotten TODO (46f71fc)
+
+2021-04-25 jEzEk
+
+        * Remove debug logs and reword an initialization log (a4fcb8c)
+
+2021-04-24 jEzEk
+
+        * Remove my own TODO: comments (188581a)
+        * Update architecture documentation to more reflect current state
+          (2034f96)
+        * Remove unnecessary history service log calls or move them to
+          returned error (c1c0e4e)
+
+2021-04-21 jEzEk
+
+        * Don't check history service if message falls through on
+          initialization (cbfdeca)
+        * Refactor handlers spawning on message initialization (a6485ff)
+
+2021-04-11 jEzEk
+
+        * Use TrimSuffix for "Sender" parameter when sending message to
+          telepathy (0448132)
+        * After spawning handlers request telepathy to spawn handlers too
+          (8ccd7e5)
+
+2021-04-09 jEzEk
+
+        * Spawn handlers when getting message from history service fails on
+          initialization (9527d1e)
+        * Don't respond to expired messages on initialization (3757c62)
+        * Make responded received message fall through on initialization
+          (656e52f)
+        * Let some storage update functions also return MMSState (9de201d)
+
+2021-04-07 jEzEk
+
+        * Remove expired messages from unrespondedTransactions on
+          initializeMessages (81d7ca3)
+
+2021-04-04 jEzEk
+
+        * Refactor some code from mediator initializeMessages to
+          telepathy/history package (1d6aff3)
+
+2021-04-03 jEzEk
+
+        * Add history package into telepathy package and refactor code
+          (bc54326)
+        * Clean unnecessary messages after communicating error or message to
+          telepathy (63fa7ba)
+
+2021-03-31 jEzEk
+
+        * Fix forwarding DOWNLOADED messages to telepathy on
+          initializeMessages (75a2a99)
+        * Handle not stored unrespondedTransactions in handleMNotificationInd
+          (f7a8160)
+
+2021-03-30 jEzEk
+
+        * Rewrite some testing logs (86d6bd9)
+
+2021-03-28 jEzEk
+
+        * Add ErrorTelepathyErrorNotify debug error, logic and tests
+          (113760b)
+        * Take TelepathyErrorNotified into account in
+          getAndHandleMRetrieveConf (924e859)
+        * Take TelepathyNotified into account when handling message download
+          error (74b3146)
+        * Don't handle already handled TransactionId in initializeMessages
+          (1972e42)
+        * Sort UUIDs returned by storage.GetStoredUUIDs by creation time
+          (7c96d99)
+        * Refactor anonymous function inside initializeMessages into
+          respondMessage (402660e)
+        * Rewrite unrespondedTransactions logic in initializeMessages
+          (aed8018)
+
+2021-03-27 jEzEk
+
+        * Don't delete message if not responded on message delete request
+          from telepathy (910e5c2)
+        * Rename mediator.undownloaded to unrespondedTransactions + fix logic
+          (42d2195)
+        * Allow redownload of ErrorStorage when handling MNotificationInd
+          (68627e1)
+
+2021-03-26 jEzEk
+
+        * Simplify message handling upon initialization (5cdc527)
+
+2021-03-24 jEzEk
+
+        * Add 4 more debug errors and enforcing them (d5ff161)
+        * Remove DebugErrorDownloadContent, fix DebugErrorDownloadStorage,
+          rename handleMRetrieveConfDownloadError (ac81e9c)
+
+2021-03-21 jEzEk
+
+        * Debug download error implementation, some refactoring (7389a4c)
+
+2021-03-19 jEzEk
+
+        * Add MNotificationInd.IsDebug, deprecate IsLocal, add version TODO
+          comments (4a83e07)
+
+2021-03-18 jEzEk
+
+        * Try to recover erroneous messages on modem initialization (8d28b6c)
+
+2021-03-14 jEzEk
+
+        * Move mediator.telepathyService nil checks into telepathy.MMSService
+          methods (953325b)
+
+2021-03-13 jEzEk
+
+        * Store if telepathy was notified on incoming message error (ee7135c)
+
+2021-03-10 jEzEk
+
+        * Don't update mms state to RESPONDED if sending m-notifyresp.ind
+          fails (a85b46e)
+
+2021-03-09 jEzEk
+
+        * Fix not sending m-notufyresp.ind to MMS center (3a8dfb3)
+
+2021-03-07 jEzEk
+
+        * Rename getMRetrieveConf to getAndHandleMRetrieveConf and refactor,
+          ... (2d1411b)
+        * Rename functions in mediator (7ad562e)
+        * Refactor MMS context activations (9c00371)
+        * Send reply to telepathy on unknown interface, ... (5f070bc)
+        * Restrict redownload in message interface if redownload not allowed,
+          ... (a220a06)
+
+2021-03-06 jEzEk
+
+        * Remove all possible files from storage on Destroy (579808a)
+
+2021-02-28 jEzEk
+
+        * Add Received parameter to message to telepathy-ofono, ... (940d6fe)
+
+2021-02-21 jEzEk
+
+        * Rewrite mNotificationInd Expiry decoding, handle expired on
+          initialization, tests (d36c421)
+
+2021-02-16 jEzEk
+
+        * Remove forgotten and solved TODOs, fix some log messages, typos and
+          comments (e8ab183)
+        * Change the setted default non-valid incoming expiry time to 15 days
+          (407bc4b)
+
+2021-02-15 jEzEk
+
+        * Unify download error codes (1de411c)
+        * Set mNotificationInd default expiry to 7 days if not present (or
+          valid) (fa2986c)
+        * Tell debian packager to use go-1.13 (c35df42)
+
+2021-02-14 jEzEk
+
+        * Add more error reporting on message download, depending on error
+          allow redownload. (35f8c8c)
+        * Add MobileData into download error message json (89f463a)
+        * Refactoring and commenting (468f696)
+
+2021-02-13 jEzEk
+
+        * Storage destroy error fix, ensure if db file exists upon response
+          file creation (519043e)
+        * Add download error message code, expiry calculated from new
+          MNotificationInd.Received field (34f13ea)
+
+2021-02-12 jEzEk
+
+        * MMSDecoder ReadExpiry function + tests + integration into Decode
+          function (27ec89f)
+
+2021-02-06 jEzEk
+
+        * Add error description to to failed download message in json format
+          (05a0817)
+
+2021-02-05 jEzEk
+
+        * Add logic for expiry token in mms decoder and decode Expiry field
+          as unix time (26acadf)
+
+2021-01-31 jEzEk
+
+        * On initializeMessages, get message from HistoryService and act
+          accordingly (bc78dce)
+
+2021-01-24 jEzEk
+
+        * Update minimum go version for bulding to 1.13 in .travis an
+          README.md files (725723f)
+        * nuntium-inject-push autodetect end-point from logs if not provided
+          (c17428c)
+
+2021-01-21 jEzEk
+
+        * Initialize message handlers from storage upon modem identification
+          (1b530df)
+
+2021-01-17 jEzEk
+
+        * Mark previous error message for deletion on successful message
+          (6fc50eb)
+
+2021-01-16 jEzEk
+
+        * Don't send error message on repeated MNotificationInd, ...
+          (a05e10c)
+        * nuntium-inject-push add transaction-id flag & logic & tests, ...
+          (39b9990)
+
+2021-01-07 jEzEk
+
+        * Added TODO comments (59c0e0e)
+
+2020-12-27 jEzEk
+
+        * nuntium-inject-push refactor & comments (11b4390)
+        * nuntium-inject-push add --sender-notification flag, flags
+          corrections (59a0e72)
+
+2020-12-26 jEzEk
+
+        * nuntium-inject-push payload comments + decode test (ff1463b)
+        * nuntium-inject-push get push payload using args function + tests &
+          use Sender flag (52e6e2f)
+        * nuntium-inject-push push payload swap for split-join vesion, remove
+          test (7aa5669)
+        * nuntium-inject-push push payload splitjoin + test if equal as
+          default (56e2b58)
+
+2020-12-24 jEzEk
+
+        * nuntium-inject-push refactor pushing to nutium & mNotificationInd
+          payload (8e2b2f5)
+
+2020-12-22 jEzEk
+
+        * nuntium-inject-push change MRetrieveConf payload according to
+          Sender flag (36d18a2)
+        * nuntium-inject-push get payload according to args function with
+          tests (5888bcc)
+        * nuntuim-inject-push payload swap for split-join version & test
+          removed (ec8813e)
+        * nuntium-inject-push payload split-join & test to see if the same as
+          original (9584244)
+
+2020-12-20 jEzEk
+
+        * Don't reuse UUID on redownload, add DeleteEvent parameter on
+          redownload, store whole MNotificationInd (b1a4a83)
+
+2020-12-14 jEzEk
+
+        * Refactor telepathy service MNotificationInd retrieval (19d376d)
+
+2020-12-12 jEzEk
+
+        * Handle message redownload, don't delete message if download failed
+          before (b280043)
+
+2020-12-05 jEzEk
+
+        * Distiled to minimal changes from xenial (e5c7db7)
+
+2020-11-30 jEzEk
+
+        * Redownload of failed MMS on delete (a61765c)
+
+2021-03-15 Rodney
+
+        * Merge pull request #11 from ubports/xenial_-_android9 (b182b1a)
+
+2020-11-23 Rodney
+
+        * Merge pull request #5 from jezek/xenial_-_import-ubports (a43a5da)
+
+2020-11-07 jEzEk
+
+        * Add mention of ubuntu-phonedations to README.md (e2ce63f)
+        * Replace ubuntu-phonedations with ubports in debian package
+          (943fe9d)
+        * Change testing docs to use ubports, ... (57a001a)
+
+2020-11-06 jEzEk
+
+        * Change imports from ubuntu-phonedations to ubports (d970ce6)
+
+2020-11-20 Rodney
+
+        * Merge pull request #7 from jezek/xenial_-_mms-enabled-refactor
+          (4196774)
+
+2020-11-12 jEzEk
+
+        * Add error logging and refactor mmsEnabled checks (4d1e3f4)
+
+2020-11-19 Rodney
+
+        * Merge pull request #6 from jezek/xenial_-_merge-upstream (ac5a903)
+
+2020-11-14 jEzEk
+
+        * Merge remote-tracking branch 'ubuntu-phonedations/master' into
+          xenial_-_mms-enabled (0040206)
+
+2020-11-11 Florian Leeber
+
+        * Merge pull request #3 from lduboeuf/xenial_-_testmmsfail (ae0bc4b)
+
+2020-11-06 jEzEk
+
+        * Fixes ofono test errors for go 1.14 (#4) (3894046)
+
+2020-10-02 Lionel Duboeuf
+
+        * propagate error when any issue with MMS reception (b43735b)
+
+2020-10-02 TheKit
+
+        * Fix getting proxy settings from newer ofono (54bab54)
+
+2020-04-03 Florian Leeber
+
+        * Fix Go build artifacts (eb970b7)
+        * Delete LP artifacts (32d4e46)
+        * Fix changelog copy/paste mistake (6890a55)
+        * Update changelog (10e9e87)
+        * Add Jenkinsfile (2c4fef4)
+
+2016-11-29 Tiago Salem Herrmann
+
+        * Check MmsEnabled option in AccountsService before start retrieving
+          an incoming mms (#31) (57e4ecd)
+
+2015-09-02 CI Train Bot
+
+        * Releasing 1.4+15.10.20150902-0ubuntu1 (0092508)
+
+2015-09-02 Alfonso Sanchez-Beato
+
+        * [ Dimitri John Ledkov ] Migrate from :sys:started events to dbus
+          owner signals. (987098c)
+        * [ Dimitri John Ledkov ] Migrate from :sys:started events to dbus
+          owner signals. (03fd2a4)
+
+2015-07-14 CI Train Bot
+
+        * Releasing 1.4+15.10.20150714-0ubuntu1 (496c17c)
+
+2015-07-14 Alfonso Sanchez-Beato
+
+        * [ Dennis O'Flaherty ];  Enable receiving non-SMIL messages [
+          Alfonso Sanchez-Beato (email Canonical) ];  Fix decoding
+          of From field value (LP: #1360403) Approved by: Manuel de
+          la Peña (177874b)
+
+2015-07-13 Alfonso Sanchez-Beato
+
+        * [ Dennis O'Flaherty ];  Enable receiving non-SMIL messages [
+          Alfonso Sanchez-Beato (email Canonical) ];  Fix decoding
+          of From field value (LP: #1360403) (9ae6953)
+
+2015-07-13 sergiusens
+
+        * Merge pull request #26 from doflah/master (904529e)
+
+2015-07-10 sergiusens
+
+        * Merge pull request #30 from alfonsosanchezbeato/fix-from-parsing
+          (6a90077)
+
+2015-07-10 Alfonso Sanchez-Beato
+
+        * Add m-retrieve.conf decoding test (73bc0df)
+        * Fix decoding of From field value (1f9384c)
+        * Add check for error when renaming downloads (1bbf17e)
+
+2015-07-07 CI Train Bot
+
+        * Releasing 1.4+15.10.20150707.1-0ubuntu1 (756d4be)
+
+2015-07-07 Alfonso Sanchez-Beato
+
+        * Track properly org.ofono.PushNotificationAgent (LP: #1471740)
+          (f15529f)
+        * Track properly org.ofono.PushNotificationAgent (LP: #1471740)
+          (b39918d)
+
+2015-07-07 Manuel de la Pena
+
+        * Merge pull request #29 from alfonsosanchezbeato/fix-flight-mode
+          (db11f4f)
+
+2015-07-06 Alfonso Sanchez-Beato
+
+        * Track properly org.ofono.PushNotificationAgent (a05c192)
+
+2015-07-02 Manuel de la Pena
+
+        * Merge pull request #28 from alfonsosanchezbeato/refresh-props
+          (79b6f42)
+
+2015-07-01 CI Train Bot
+
+        * Releasing 1.4+15.10.20150701.2-0ubuntu1 (d214de7)
+
+2015-07-01 Alfonso Sanchez-Beato
+
+        * Use proxy and proxy port from ofono Settings property (LP:
+          #1417976) Approved by: Manuel de la Peña (8c10cbc)
+        * Refresh context properties after (de)activation (203b614)
+        * Refresh context properties after (de)activation (0f62571)
+        * Use proxy and proxy port from ofono Settings property (LP:
+          #1417976) (0a49574)
+
+2015-06-30 Manuel de la Pena
+
+        * Merge pull request #27 from alfonsosanchezbeato/use-ofono-settings
+          (e361f5a)
+
+2015-06-19 Alfonso Sanchez-Beato
+
+        * Adapt tests to usage of ofono Settings property (fe6dd73)
+        * Use ofono dynamic settings (6be5f46)
+
+2015-06-15 Dennis O'Flaherty
+
+        * Enable receiving non-SMIL messages (bb2bd0e)
+
+2015-06-15 CI Train Bot
+
+        * Releasing 1.4+15.10.20150615-0ubuntu1 (7c77d82)
+
+2015-06-15 Alfonso Sanchez-Beato
+
+        * Fix LP: #1461107 and make PDU decoding more robust;  Fix LP:
+          #1460012 (context opened twice on rx);  Wait between
+          retries when opening an IP context;  Set ofono's Preferred
+          property when a context is known to work Approved by:
+          Manuel de la Peña (211c257)
+
+2015-06-12 Alfonso Sanchez-Beato
+
+        * Fix LP: #1461107 and make PDU decoding more robust;  Fix LP:
+          #1460012 (context opened twice on rx);  Wait between
+          retries when opening an IP context;  Set ofono's Preferred
+          property when a context is known to work (78cd53d)
+
+2015-06-12 Manuel de la Pena
+
+        * Merge pull request #24 from alfonsosanchezbeato/fix-decoder-crash
+          (916652a)
+
+2015-06-03 Alfonso Sanchez-Beato
+
+        * Make decoder more robust (bd8c08c)
+        * Add test for Play operator indication PDU (2833e6b)
+        * Add priority header to notification PDU (cd72712)
+
+2015-06-10 Manuel de la Pena
+
+        * Merge pull request #25 from alfonsosanchezbeato/set-ofono-preferred
+          (84f1616)
+
+2015-06-04 CI Train Bot
+
+        * Releasing 1.4+15.10.20150604-0ubuntu1 (ada5637)
+
+2015-06-04 Alfonso Sanchez-Beato
+
+        * Fix LP #1459995 and most bugs which symptom is not receiving MMS
+           messages;  Remove nuntium binary from VC (9442703)
+        * Set ofono's Preferred when context works (a6461db)
+
+2015-06-02 sergiusens
+
+        * Merge pull request #23 from alfonsosanchezbeato/wait-context-fail
+          (f0ed274)
+
+2015-06-01 Alfonso Sanchez-Beato
+
+        * Wait when context failed to connect (9ada09c)
+
+2015-06-02 sergiusens
+
+        * Merge pull request #22 from alfonsosanchezbeato/not-close-context
+          (08d2579)
+
+2015-06-01 Alfonso Sanchez-Beato
+
+        * Fix LP #1459995 and most bugs which symptom is not receiving MMS
+           messages;  Remove nuntium binary from VC (52b2aab)
+        * Change upstart job so nuntium is re-spawned after an exit/crash
+          (3c0912e)
+
+2015-05-29 Alfonso Sanchez-Beato
+
+        * Do not open twice the context on rx (d4a5233)
+
+2015-05-29 sergiusens
+
+        * Merge pull request #21 from alfonsosanchezbeato/fix-mms-version
+          (2a314db)
+
+2015-05-29 Alfonso Sanchez-Beato
+
+        * Decode MMS version coherently with encoder (521d4d1)
+
+2015-05-28 Manuel de la Pena
+
+        * Merge pull request #19 from alfonsosanchezbeato/remove-binaries
+          (0e2b40a)
+
+2015-05-26 Alfonso Sanchez-Beato
+
+        * Add executables to gitignore (ee1b7a8)
+        * Remove nuntium binary from version control (495fabd)
+
+2015-05-21 CI Train Bot
+
+        * Releasing 1.4+15.04.20150521-0ubuntu1 (d3f0b01)
+
+2015-05-21 Alfonso Sanchez-Beato
+
+        *   [ Sergio Schvezov ]   * Decode properly content type when there
+          are parameters   [ Alfonso Sanchez-Beato ]   * Fix LP:
+          #1441135 in the event of an oFono crash   * Use oFono's
+          Preferred property when selecting the mobile context
+          (2eb96a9)
+        * Change upstart job so nuntium is re-spawned after an exit/crash
+
+          Fixes: #1456097 Approved by: Sergio Schvezov (b2f6419)
+        * Fix changelog version (aa7e20e)
+        * Fix package version (918fb29)
+
+2015-05-20 Alfonso Sanchez-Beato
+
+        * [ Sergio Schvezov ];  Decode properly content type when there are
+          parameters [ Alfonso Sanchez-Beato ];  Fix LP: #1441135 in
+          the event of an oFono crash;  Use oFono's Preferred
+          property when selecting the mobile context (12cea66)
+
+2015-05-20 Manuel de la Pena
+
+        * Merge pull request #2 from ubuntu-phonedations/t_mobile (5e47596)
+        * Merge pull request #18 from alfonsosanchezbeato/use-ofono-preferred
+          (ea35d2e)
+
+2015-05-18 Alfonso Sanchez-Beato
+
+        * Change upstart job so nuntium is re-spawned after an exit/crash
+          (80a568f)
+
+2015-05-14 Alfonso Sanchez-Beato
+
+        * Consider Preferred property in context tests (cad39c8)
+
+2015-05-12 Alfonso Sanchez-Beato
+
+        * Use ofono's Preferred context property (49563e8)
+
+2015-04-24 alfonsosanchezbeato
+
+        * Make sure we receive modem added/removed signals (729a609)
+        * Notify SIM removed only if one was present (d1b50a9)
+
+2015-04-22 CI Train Bot
+
+        * Releasing 1.4+15.04.20150422-0ubuntu1 (58e9c23)
+
+2015-04-22 Ricardo Salveti de Araujo
+
+        * control: building with golang-go instead (only package currently
+          using gccgo) (9bb294c)
+
+2015-04-21 Ricardo Salveti de Araujo
+
+        * Merging trunk (98d6c7b)
+        * releasing package nuntium version 1.4-0ubuntu6 (2f94c2b)
+        * control: building with golang-go instead (only package currently
+          using gccgo) (2e42f6c)
+
+2015-01-21 Sergio Schvezov
+
+        * Release 1.4 (8553b75)
+
+2015-01-20 Sergio Schvezov
+
+        * Adding support for multiple recipients (64b1781)
+        * Release commit (ef83876)
+
+2015-01-20 sergiusens
+
+        * Merge pull request #15 from mandel-macaque/master (f28cbff)
+        * Merge pull request #15 from mandel-macaque/master (319d648)
+
+2015-01-15 Manuel de la Pena
+
+        * Use if statement to decide the pkg to use. (d83439b)
+        * Use if statement to decide the pkg to use. (3753fe2)
+        * Try diff way to set the env vars. (dc92aae)
+        * Try diff way to set the env vars. (c79c0d0)
+        * Try diff way to set the env vars. (9060c8d)
+        * Try diff way to set the env vars. (c90ec4c)
+        * Ensure that the correct cover pkg is used depending on the golang
+          installed. (3094306)
+        * Ensure that the correct cover pkg is used depending on the golang
+          installed. (d7e6ce6)
+        * Update travis config. (2787c47)
+        * Update travis config. (0ab407e)
+        * Fix issue #14 by adding the TO field several times (one per
+          recipient) and adapts the structures accordingly to have a
+          []string in the To field instead of a string. (d1e4b25)
+        * Fix issue #14 by adding the TO field several times (one per
+          recipient) and adapts the structures accordingly to have a
+          []string in the To field instead of a string. (7b67ffc)
+
+2014-11-07 Sergio Schvezov
+
+        * Upstream packaging (85331e3)
+        * Adding replaces logic for nuntium-decode-cli -> nuntium-tools
+          (da38658)
+        * New packaging (inherited from bzr based upstream) (29707e7)
+
+2014-11-06 Ricardo Salveti de Araujo
+
+        * Merge pull request #13 from ubuntu-phonedations/nuntium-inject-push
+          (7d46416)
+        * Merge pull request #13 from ubuntu-phonedations/nuntium-inject-push
+          (7b3ac6c)
+
+2014-11-06 Sergio Schvezov
+
+        * Adding nuntium-inject-push (d1cb000)
+        * Adding nuntium-inject-push (00e5a41)
+
+2014-11-03 sergiusens
+
+        * Merge pull request #11 from ubuntu-phonedations/testdoc (6c29f49)
+        * Merge pull request #11 from ubuntu-phonedations/testdoc (569f200)
+
+2014-10-29 Sergio Schvezov
+
+        * Adding testing document. (bfa2f19)
+
+2014-10-30 Sergio Schvezov
+
+        * Adding testing document. (36c822f)
+
+2014-10-29 sergiusens
+
+        * Merge pull request #10 from ubuntu-phonedations/archdoc (68f802f)
+        * Merge pull request #10 from ubuntu-phonedations/archdoc (aec72a9)
+
+2014-10-28 Sergio Schvezov
+
+        * Adding README.md and architecture document (223f934)
+        * Adding README.md and architecture document (11daf5f)
+
+2014-10-22 Sergio Schvezov
+
+        * Content Type with parameters decoded properly (4f0dc49)
+
+2014-10-21 Sergio Schvezov
+
+        * Relocating artifacts (a01a8e4)
+        * Relocating artifacts (fbb675b)
+
+2014-10-14 Sergio Schvezov
+
+        * Adding goveralls configuration (5be5456)
+        * Adding goveralls configuration (e42f61c)
+        * Adding travis configuration (b2db414)
+        * Removing debian packaging (927037d)
+
+2014-10-02 CI bot
+
+        * Releasing 0.1+14.10.20141002-0ubuntu1 (3fb2c32)
+
+2014-10-02 Sergio Schvezov
+
+        * Retry on NotAttached ofono errors
+          Fixes: 1371032 Approved by:
+          Ricardo Salveti, PS Jenkins bot (c08ff5f)
+        * Syncing upload/download operations with activation/deactivation per
+          request. Moving all the ofono context property checks and
+          reflection logic to proper functions for easier reuse and
+          readability.
+          Fixes: 1376224 Approved by: PS Jenkins bot
+          (8b69db2)
+        * Allow context selection over the org.ofono.mms.Service interface
+
+          Fixes: 1370660 Approved by: Antti Kaijanmäki, PS Jenkins
+          bot, Ricardo Salveti (5a81088)
+
+2014-10-01 Sergio Schvezov
+
+        * format fix (a974300)
+        * bzr pump (84de43f)
+        * active toggling improvements including new dbus error type checks
+          and log handling (581af41)
+        * Deactivating context if it was activated on scope exit (87cf098)
+        * Retry on NotAttached ofono errors (2b40a70)
+        * Log improv (b008d35)
+        * Syncing upload/download operations with activation/deactivation per
+          request (4c7bacf)
+        * Removing stale log line (b464072)
+
+2014-09-30 Sergio Schvezov
+
+        * Emitting properties changed for preferred context and always having
+          the property set (47734d5)
+        * Minor cleanup, always refreshed from stored context state (698ad90)
+
+2014-09-29 Sergio Schvezov
+
+        * Adding log on what is being tried for activation (00d030a)
+        * Allow context selection over the org.ofono.mms.Service interface
+          (f7684c9)
+
+2014-09-24 CI bot
+
+        * Releasing 0.1+14.10.20140924-0ubuntu1 (3ccdc54)
+
+2014-09-24 Sergio Schvezov
+
+        * Using the same optional parameters android uses for sending, fixing
+          length encoding for lengths < 30, adding extra params to
+          the content types.
+          Fixes: 1349299 Approved by: PS Jenkins
+          bot, Manuel de la Peña (447c0c5)
+
+2014-09-23 Sergio Schvezov
+
+        * Using the same optional parameters android uses for sending, fixing
+          length encoding for lengths < 30, adding extra params to
+          the content types. (57189e6)
+
+2014-09-18 CI bot
+
+        * Releasing 0.1+14.10.20140918-0ubuntu1 (cedd2bb)
+
+2014-09-18 Sergio Schvezov
+
+        * Iterate over a list of possible valid MMS contexts and store the
+          preferred one
+          Fixes: 1370659 Approved by: Ricardo Salveti,
+          PS Jenkins bot (991e5e4)
+
+2014-09-17 Sergio Schvezov
+
+        * Try all possible contexts that could be used for MMS instead of the
+          first match and store the working one as the preferred
+          context (eacc358)
+
+2014-09-15 CI bot
+
+        * Releasing 0.1+14.10.20140915.1-0ubuntu1 (8e07efa)
+
+2014-09-15 Sergio Schvezov
+
+        * Add a missing return statement when decoding fails with an
+          additional decoding test.
+          Fixes: 1369143 Approved by:
+          Ricardo Salveti, PS Jenkins bot (fefc70e)
+
+2014-09-13 Sergio Schvezov
+
+        * Add a missing return statement when decoding fails with an
+          additional decoding test. (dbe648f)
+
+2014-09-12 CI bot
+
+        * Releasing 0.1+14.10.20140912-0ubuntu1 (8b8d971)
+
+2014-09-12 Sergio Schvezov
+
+        * Allow proxyless contexts to be selected for MMS
+          Fixes: 1362008
+          Approved by: Ricardo Salveti, PS Jenkins bot (18fb406)
+
+2014-09-10 Sergio Schvezov
+
+        * Allow proxyless MMS contexts to be selected. (937b940)
+
+2014-09-04 CI bot
+
+        * Releasing 0.1+14.10.20140904-0ubuntu1 (d28e7be)
+
+2014-09-04 Sergio Schvezov
+
+        * Better error handling on sending MMS and lowering the supported
+          version number for broader carrier support
+          Fixes: 1349299
+          Approved by: PS Jenkins bot, Manuel de la Peña (cac62d7)
+
+2014-09-03 Sergio Schvezov
+
+        * Copy the tests when provisioning in debian/rules (16c7869)
+        * Forgot the test! (bac237e)
+        * Use Version 1.1 for MMS to have broader carrier support (44f7f6c)
+        * Better error handling on send (7cac070)
+
+2014-09-02 CI bot
+
+        * Releasing 0.1+14.10.20140902-0ubuntu1 (00752d1)
+
+2014-09-02 Sergio Schvezov
+
+        * Read reflected content length for push data into the correct type.
+
+          Fixes: 1342441 Approved by: Ricardo Salveti, PS Jenkins
+          bot (09dd1b7)
+
+2014-09-01 Sergio Schvezov
+
+        * Read reflected content length for push data into the correct type.
+          (0b163be)
+
+2014-08-14 CI bot
+
+        * Releasing 0.1+14.10.20140814-0ubuntu1 (dd5f0d6)
+
+2014-08-14 Tiago Salem Herrmann
+
+        * Add ModemObjectPath property to Service. Approved by: PS Jenkins
+          bot (92178b0)
+
+2014-08-12 Tiago Salem Herrmann
+
+        * add ModemObjectPath property to Service (9fdf198)
+
+2014-07-21 CI bot
+
+        * Releasing 0.1+14.10.20140721-0ubuntu1 (c09acf3)
+
+2014-07-21 Sergio Schvezov
+
+        * Tracking response file for uploads (remaining parts to be done when
+          telepathy-ofono integration work starts) Approved by:
+          Manuel de la Peña (33df4a8)
+        * Attachment encoding fixes.
+          Fixes: 1342270 Approved by: Manuel de la
+          Peña (389c5be)
+        * Header parameter encoding corrections for content type and from
+          token insert address length. Approved by: Manuel de la
+          Peña (0867be2)
+        * Calling sync and close after encoding and before uploading.
+          Approved by: Manuel de la Peña (1eac937)
+
+2014-07-17 Sergio Schvezov
+
+        * Keep track of the response file; adding notification when telepathy
+          work starts. (1e3f567)
+
+2014-07-15 Sergio Schvezov
+
+        * Making it easier to solve bug 1342270 (c015524)
+        * Fix attachment encoding (2191b28)
+
+2014-07-14 Sergio Schvezov
+
+        * Use MMS Content Type instead of WSP Content Type parameter.
+          (85064e0)
+        * From token address length encoding needs to be encoded without
+          length encoding. (2b33d13)
+        * Calling sync and close (d7fabce)
+
+2014-07-02 CI bot
+
+        * Releasing 0.1+14.10.20140702.2-0ubuntu1 (8e7ccbf)
+        * SendMessage telepathy service support with necessary encoder fixes.
+          (7c51396)
+        * Upload support while moving udm to it's new package namespace
+          (3edd7a1)
+
+2014-07-02 Sergio Schvezov
+
+        * Sending MessageAdded with draft Status for new outgoing messages
+          (f5c8741)
+        * Length bound checks fix
+          Fixes: 1336146 (400efef)
+        * Relaxing matching for smil media type (2146056)
+        * Adding encode -> decode tests for the cases where decoding is the
+          inverse function of encoding. (f0a9c9c)
+        * Making decoding less verbose and logging information on errors only
+          (fdc58ef)
+        * Fixing recv for multiple recipients. (abc5b5a)
+        * Adding a minimal telepathy message interface (4fd9388)
+        * Waiting for calls to GetServices on the proper interface (345cff6)
+        * Improving incoming dbus method call handling for the mms service
+          interface (c78dd25)
+        * Merged length_limits into message_signals_for_sending. (a07defb)
+        * Merged smil_fix into length_limits. (1ba2b09)
+        * Merged encode_decode_tests into smil_fix. (b1028b5)
+        * Merged stdout_cleanup into encode_decode_tests. (c3a279f)
+        * Merged multiple-recipients into stdout_cleanup. (0db34d5)
+        * Merged message-api into multiple-recipients. (a84b2c0)
+        * Adding missing return (39a08bf)
+        * Sending MessageAdded for SendMessage (1cd477d)
+        * Merged smil_fix into length_limits. (cf14a7f)
+        * Merged encode_decode_tests into smil_fix. (df3b9dd)
+        * Adding doc strings to explain bit operations and logic (138d6cf)
+        * Merged smil_fix into length_limits. (368a685)
+        * Merged encode_decode_tests into smil_fix. (77fa863)
+        * Merged stdout_cleanup into encode_decode_tests. (31f1031)
+        * Removing commented code (f57b885)
+        * Merged message-api into multiple-recipients. (5c3c770)
+        * Merged smil_fix into length_limits. (be2d5db)
+        * Merged encode_decode_tests into smil_fix. (d2f1a07)
+        * Merged stdout_cleanup into encode_decode_tests. (dc4a314)
+        * Merged multiple-recipients into stdout_cleanup. (ea59676)
+        * Using the sort package to find valid status values (2635b37)
+        * Merged message-api into multiple-recipients. (a2cd4de)
+        * Merged smil_fix into length_limits. (1802eed)
+        * Merged encode_decode_tests into smil_fix. (117658c)
+        * Merged stdout_cleanup into encode_decode_tests. (ce94182)
+        * Merged multiple-recipients into stdout_cleanup. (225befe)
+        * Merged outgoing_message into getservices. (a2e704f)
+        * Merged getservices into message-api. (62d14e3)
+        * close for mediator.NewMSendReq and mediator.NewMSendReqFile
+          (0fb6898)
+        * Fixing bound check on short length max (365c02d)
+
+2014-07-01 Sergio Schvezov
+
+        * Merged encode_decode_tests into smil_fix. (5da168e)
+        * Merged stdout_cleanup into encode_decode_tests. (edee106)
+        * More log improvements while decoding and spitting out the dec.log
+          on Decode errors (4f37d36)
+
+2014-06-30 Sergio Schvezov
+
+        * Merged encode_decode_tests into smil_fix. (311e541)
+        * Merged stdout_cleanup into encode_decode_tests. (7ba9101)
+        * Merged message-api into multiple-recipients. (8170f1b)
+        * Merged multiple-recipients into stdout_cleanup. (cf26274)
+        * Fixing build issues (2bd9c7e)
+        * Merged encode_decode_tests into smil_fix. (38de444)
+        * Merged stdout_cleanup into encode_decode_tests. (44eb60c)
+        * Merged message-api into multiple-recipients. (df9e1e9)
+        * Merged multiple-recipients into stdout_cleanup. (83b3f30)
+        * Checking for errors while sending signals to telepathy (8b5761b)
+        * Merged encode_decode_tests into smil_fix. (ddd235e)
+        * Merged stdout_cleanup into encode_decode_tests. (a73731f)
+        * Merged message-api into multiple-recipients. (d272fc6)
+        * Merged multiple-recipients into stdout_cleanup. (366815b)
+        * merging (a540758)
+        * Merged outgoing_message into getservices. (068abd6)
+        * Remove useless TODO print (0f7841c)
+        * Merged encode_decode_tests into smil_fix. (96c2e4f)
+        * Merged stdout_cleanup into encode_decode_tests. (9df8b0d)
+        * Merged multiple-recipients into stdout_cleanup. (2125c4f)
+        * Merged message-api into multiple-recipients. (cd70c09)
+        * Merged getservices into message-api. (9f78fda)
+        * Merged outgoing_message into getservices. (46e4501)
+        * Merged uploads into outgoing_message. (08d8b47)
+        * Removing unnecessary error logging (6beec67)
+        * Relaxing GetSmil (daf6b89)
+        * Merged stdout_cleanup into encode_decode_tests. (1955f6d)
+        * Merged multiple-recipients into stdout_cleanup. (18d2dfa)
+        * Merged message-api into multiple-recipients. (d14692d)
+        * Merged getservices into message-api. (4aefe1c)
+        * Merged outgoing_message into getservices. (52045eb)
+        * Merged uploads into outgoing_message. (28c3989)
+        * More error reporting on uploads (4067dc1)
+        * adding ubuntu-upload-manager as a dependency (221554d)
+        * Merged stdout_cleanup into encode_decode_tests. (a90e30e)
+        * Merged multiple-recipients into stdout_cleanup. (dcda3b9)
+        * Merged message-api into multiple-recipients. (844f799)
+        * Destroy message (2eb1175)
+        * property change for message status changes (ff1ce26)
+        * Merged outgoing_message into getservices. (3be4390)
+        * Merged stdout_cleanup into encode_decode_tests. (903e341)
+        * Merged multiple-recipients into stdout_cleanup. (00ce71d)
+        * Merged message-api into multiple-recipients. (fb09015)
+        * Merged getservices into message-api. (5f69d3d)
+        * Better error messages for service (a49328b)
+        * Adding PropertyChanged to message api (dae1bdb)
+        * Legnth encoding tests (9dec354)
+        * Fixing encoding for uintvar with added tests (8f15d04)
+        * Minor cleanup and fixes from written tests (124db5c)
+
+2014-06-29 Sergio Schvezov
+
+        * Merged stdout_cleanup into encode_decode_tests. (33a1201)
+        * save logs for encoding too (9573250)
+        * Merged stdout_cleanup into encode_decode_tests. (a04e866)
+        * Adding initial encode/decode tests (590249f)
+        * Writing decoded values to backlog to display on error only
+          (5d93ba8)
+
+2014-06-28 Sergio Schvezov
+
+        * Allow decoding of multiple TOs (75a20c2)
+
+2014-06-26 Sergio Schvezov
+
+        * Merged outgoing_message into getservices. (a499ad8)
+        * Merged getservices into message-api. (86501a2)
+        * Removing udm removal from debian/rules (2a9e11d)
+        * Merged outgoing_message into getservices. (25dba62)
+        * Merged getservices into message-api. (88fbeb1)
+        * Remove local hack (985b286)
+        * Adding missing file (4188b28)
+        * Merged outgoing_message into getservices. (96d50c6)
+        * Merged uploads into outgoing_message. (47ec4c1)
+        * Merged getservices into message-api. (6db86e8)
+        * Adding packaging dependency for udm (33f39f1)
+        * Merged getservices into message-api. (6a46896)
+        * Listening on the proper interface (f255f0c)
+        * Initial implementation of the message interface (72beee6)
+
+2014-06-25 Sergio Schvezov
+
+        * Merged uploads into outgoing_message. (148678e)
+        * Merged telepathy_switch into uploads. (61a0234)
+        * Merging trunk (b082e1e)
+
+2014-06-24 Sergio Schvezov
+
+        * Checking for errors before uploading (60523fc)
+
+2014-06-22 Sergio Schvezov
+
+        * m-send.req file sending (3a37ecd)
+        * Adding length encoding (f669da9)
+
+2014-06-21 CI bot
+
+        * Releasing 0.1+14.10.20140621-0ubuntu1 (64736bf)
+
+2014-06-21 Sergio Schvezov
+
+        * Decoding well known media types in the push notification.
+          Fixes:
+          1330917 (4c1a104)
+        * Not running tests on powerpc, the runners panic (bce2c40)
+        * Fix test to not decode twice (5071e9f)
+
+2014-06-19 Sergio Schvezov
+
+        * Fixing typos (5b9ddc6)
+        * Fixing introduced errors while decoding media type (06cdacc)
+
+2014-06-18 Sergio Schvezov
+
+        * Decoding well known media types in the push notification. (bc1dc02)
+
+2014-05-29 CI bot
+
+        * Releasing 0.1+14.10.20140529-0ubuntu1 (a9cf553)
+
+2014-05-29 Sergio Schvezov
+
+        * Fixing constrained content type decoding
+          Fixes: 1324182 (02527b3)
+        * Addding bounds checking (8f23891)
+        * Allow decoding constrained media (a1125ed)
+
+2014-05-23 Sergio Schvezov
+
+        * SendMessage upper and lower layers checkpoint (e079680)
+
+2014-05-21 Sergio Schvezov
+
+        * Merged uploads into outgoing_message. (43a82e5)
+        * Adding uploads (429dfb6)
+
+2014-05-20 Sergio Schvezov
+
+        * using the proper udm path (6154e11)
+        * Initial send message (15786f2)
+
+2014-05-19 Sergio Schvezov
+
+        * Simplify telepathy service message switch (dd92872)
+
+2014-05-14 CI bot
+
+        * Releasing 0.1+14.10.20140514.1-0ubuntu1 (4a3a697)
+
+2014-05-14 Sergio Schvezov
+
+        * Encoder improvements (28314e7)
+        * Splitting up ofono package to smaller logical bits (c1b5458)
+        * Adding one more condition to the upstart start stanza since the
+          first event can be missed (fbab342)
+        * Removing redundant log line (23fa774)
+        * Fixing a string decode bounds issue (db229ff)
+
+2014-05-13 Sergio Schvezov
+
+        * Moving stray Built-Using from Depends into Built-Using. (03640b3)
+        * Making status retrieval it's own function reciever for modem and
+          adding some comments wrt what is being accomplished and
+          how (cf9646b)
+
+2014-05-12 Sergio Schvezov
+
+        * Creating a new dbus instance tot he system bus for the push agent
+          to avoid a deadlock when call RegisterAgent. Also putting
+          back Agent registering back onto the mediator. (9bd9085)
+
+2014-05-09 Sergio Schvezov
+
+        * Merged upstart_fix into ofonomanager. (95a6477)
+        * Allowing upstart job to start on started dbus session bus in case
+          we miss the ofono start (f769bdf)
+        * More guards and cleanup (7545dca)
+        * Renaming file ofono.go to modem.go to reflect its unit's function
+          (74a7833)
+        * Merged log_redundancy into ofonomanager. (279c0be)
+        * Removing push pdu log print (d0cc7b8)
+        * Merged decode_errors into ofonomanager. (db65ac6)
+        * Fixing decoder ReadString out of bounds and adding tests for it.
+          (0d349a0)
+        * Returning called function's err value directly instead of
+          indirectly where possible (7bf718f)
+
+2014-05-08 Steve Langasek
+
+        * releasing package nuntium version 0.1-0ubuntu1 (71000c0)
+
+2014-05-08 Sergio Schvezov
+
+        * Spliting ofono up into smaller pieces (init) (20e8b23)
+
+2014-05-08 Steve Langasek
+
+        * Merge lp:~sergiusens/nuntium/packaging_fixes (f6b0d38)
+
+2014-05-08 Sergio Schvezov
+
+        * Cleaning up the changelog (7e7b573)
+        * Skip the stripping phase we are using gccgo (6b43f1e)
+
+2014-05-07 Sergio Schvezov
+
+        * Reverting back to using mostly dh_golang (ece0736)
+        * Using the packaged path for go-xdg (dc5db50)
+        * Adding missing package dependency for testing (6fb30ef)
+        * Using gccgo, fixing upstart script and removing lintian overrides
+          (44caafb)
+        * Making dbus conn part of ofono struct, adding a mediator to process
+          events, enabling storing, adding an initial encoder
+          (df1b430)
+        * Putting the encoder into a loop (78bcf05)
+        * Making the anonymous function from the prior commit a named one
+          (8822c26)
+
+2014-05-06 Sergio Schvezov
+
+        * Putting the m-notifyresp.ind encoding part into an anonymous
+          function to be able to use defer (5f82a19)
+        * Initial encoding implementation (f0796b5)
+
+2014-04-30 Sergio Schvezov
+
+        * Removing storage management from the mms package (d5cc503)
+
+2014-04-29 Sergio Schvezov
+
+        * Fixing store path (d5d2d07)
+
+2014-04-28 Sergio Schvezov
+
+        * Adding initial storage (418d53e)
+        * Merged ofono_dbus_conn into messageprocessing. (a2f87ad)
+        * Pumping changes (df606b6)
+        * Cosmetic split and reordering. (a0314bc)
+        * Merged ofono_dbus_conn into messageprocessing. (cefcb42)
+        * Merged nuntium into ofono_dbus_conn. (f818ce0)
+        * Cosmetic split and reordering. Removed unused elements (3ba430c)
+        * Adding a mediator component (9ec3e24)
+
+2014-04-24 Sergio Schvezov
+
+        * Making conn a member of Modem to not pass it around like a football
+          (a4dc22f)
+        * Running goimports to automatically get a separation of std library
+          imports and others. (d33315a)
+
+2014-04-22 Sergio Schvezov
+
+        * Add sugar to decode-cli and allow writing of data parts to disk if
+          3rd argument is provided and is a directory (4b547d2)
+        * Exiting with more information and checking for when more args are
+          passed in. (55207a8)
+        * Using the correct MessageAdded format and object paths (76011d7)
+
+2014-04-14 Sergio Schvezov
+
+        * Add sugar to decode-cli and allow writing of data parts to disk if
+          3rd argument is provided and is a directory (ce577d1)
+        * Using the correct MessageAdded format and object paths (2f33c78)
+        * - Making Data, Offset and all the receivers for the decoder public
+          so we can use to extend other decoders - Taking into
+          account application headers - Moving wsp consts to
+          separate file - Use the mms decoder to decode as much as
+          possible - When decoding the remaining headers; all we
+          care about is the application id - Cleanup of unused code
+          (2a0924e)
+        * Tracking ofono state (e1c236e)
+        * Add comments to decoding general form parameters names and values
+          (1ce6b6b)
+        * Using consts where relevant (34b19f3)
+
+2014-04-11 Sergio Schvezov
+
+        * gofmt (6645a0a)
+        * Merging trunk (8941bd0)
+        * - Moving consts to separate file - Use the mms decoder to decode as
+          much as possible - When decoding the remaining header.
+          all we care about is the application id (19b6f93)
+        * - Making Data, Offset and all the receivers for the decoder public
+          so we can use to extend other decoders - Taking into
+          account application headers (7b024d6)
+        * When the contetype is text/plain and not
+          application/vnd.wap.multipart.related what follows is just
+          []data (f3c5adc)
+
+2014-04-10 Sergio Schvezov
+
+        * - Making the logic for startup a bit better - Adding better pdu
+          print out (for initial stages) (b9c82bc)
+        * Allow for decoding of text/messages as content type (d353938)
+        * Merging with trunk (fdf4780)
+        * Implementing MessageAdded signal from org.ofono.mms.Service
+          (e1c4f1f)
+        * Better changelog (e0306a5)
+        * - Decoding encoded strings and providing a more complete decoder
+          for constrained media types - Clean exit if we can't
+          decode a push header completely and all the data we need
+          is already there - Setting port to 80 when no port is set,
+          better handling of different input parameters (3f6e800)
+        * Don't filter on reflected value and save the Active state properly
+          (08d9bdc)
+        * Support for data parts that are just bytes (81d822f)
+        * Changing the way we select contexts for MMS from ofono (1eae285)
+
+2014-04-09 Sergio Schvezov
+
+        * Registering from main instead of within the ofono package to avoid
+          a blocking call to register agent (b36a91b)
+        * Handling ofono state (2698dc9)
+
+2014-04-07 Sergio Schvezov
+
+        * Using a named const for readString (226bfc1)
+        * Removing magic numbers (0e89dd0)
+        * Better commit message (78d0295)
+        * Decoding encoded strings and providing a more complete decoder for
+          constrained media types (73416bc)
+        * Clean exit if we can't decode a push header completely and all the
+          data we need is already there (f0a7806)
+        * Setting port to 80 when no port is set, better handling of
+          different input parameters (ed532cc)
+        * Don't filter on reflected value and save the Active state properly
+          (2c869d1)
+        * Returning on error (ec62c5a)
+
+2014-04-06 Sergio Schvezov
+
+        * Adding check for pure data payload in data parts (ad799bf)
+
+2014-04-04 Sergio Schvezov
+
+        * gofmt (30c1b2d)
+        * Finishing MessageAdded (3f361f6)
+        * Fixing long integer decode (8f5f6f7)
+        * Initial packaging (5a620c2)
+        * Adding MessageAdded (4daeddd)
+        * Changing the way we select contexts (b4844a0)
+
+2014-04-03 Sergio Schvezov
+
+        * Initial packaging (389a87f)
+        * Adding udm locally (accaab8)
+        * Hooking up data parts (d7a69ee)
+
+2014-04-02 Sergio Schvezov
+
+        * Fixing off by one decoder error (85ecc2b)
+        * Decoding more parameters (charset and mediatype) (e84fd23)
+
+2014-03-31 Sergio Schvezov
+
+        * Content header correctness when not being able to decode and saving
+          decoded value (eccd481)
+        * First pass of content type decoder (85c48e0)
+
+2014-03-30 Sergio Schvezov
+
+        * Creating decoder-cli (2a74cf3)
+        * Using helpers and finishing off decoder (4d43eef)
+
+2014-03-28 Sergio Schvezov
+
+        * Using reflect for a generic decoder. (ef41f85)
+        * Better differentiation between logged buses and name change for
+          Download to DownloadContent (0737cb6)
+        * Adding tear down for services (00a711a)
+        * Adding Content Length parsing, better errors to stdout for
+          unhandled fields and operator selection to test/test.go
+          (0ef48b6)
+
+2014-03-27 Sergio Schvezov
+
+        * Adding initial org.ofono.mms.[Service|Manager] implemenentation
+          (1c991a8)
+
+2014-03-19 Sergio Schvezov
+
+        * Adapting to latest download manager api changes (9722350)
+
+2014-03-14 Sergio Schvezov
+
+        * Refactored ofono logic (908a9e8)
+        * Running gofmt (68c42d2)
+
+2014-03-10 Sergio Schvezov
+
+        * Changing name (ca683af)
+
+2014-02-13 Sergio Schvezov
+
+        * Init (ba6aa50)
