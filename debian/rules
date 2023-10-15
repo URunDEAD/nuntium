@@ -29,6 +29,8 @@ override_dh_missing:
 override_dh_auto_install:
 	dh_auto_install -O--buildsystem=golang
 	sh debian/cleanup.sh ${CURDIR}/debian/tmp $(DH_GOPKG)
+	rm -f debian/tmp/usr/share/gocode/src/github.com/ubports/nuntium/AUTHORS
+	rm -f debian/tmp/usr/share/gocode/src/github.com/ubports/nuntium/ChangeLog
 
 override_dh_strip:
 	echo "Skipping strip"
