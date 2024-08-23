@@ -31,7 +31,7 @@ import (
 
 	"log"
 
-	"launchpad.net/go-dbus/v1"
+	"github.com/godbus/dbus/v5"
 	"launchpad.net/go-xdg/v0"
 )
 

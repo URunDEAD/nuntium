@@ -3,7 +3,7 @@ package main
 import (
 	"bytes"
 
-	"github.com/ubports/nuntium/mms"
+	"gitlab.com/ubports/development/core/nuntium/mms"
 )
 
 var mRetrieveConf = bytes.Join([][]byte{

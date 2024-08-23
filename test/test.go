@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	"launchpad.net/go-dbus/v1"
+	"github.com/godbus/dbus/v5"
 )
 
 func main() {
@@ -19,8 +19,8 @@ func main() {
 	}
 
 	var err error
-	var conn *dbus.Connection
-	if conn, err = dbus.Connect(dbus.SystemBus); err != nil {
+	var conn *dbus.Conn
+	if conn, err = dbus.ConnectSystemBus(); err != nil {
 		fmt.Println("Connection error:", err)
 		os.Exit(1)
 	}
@@ -84,11 +84,14 @@ func main() {
 		fmt.Println("Choose between argentina-personal and spain-vodaphone")
 	}
 
-	info := map[string]*dbus.Variant{"LocalSentTime": &dbus.Variant{"2014-02-05T08:29:55-0300"},
-		"Sender": &dbus.Variant{"+543515924906"}}
+	sent := dbus.MakeVariant("2014-02-05T08:29:55-0300")
+	sender := dbus.MakeVariant("+543515924906")
+	info := map[string]*dbus.Variant{
+		"LocalSentTime": &sent,
+		"Sender": &sender,
+	}
 
-	reply, err := obj.Call("org.ofono.PushNotificationAgent", "ReceiveNotification", data, info)
-	if err != nil || reply.Type == dbus.TypeError {
+	if err := obj.Call("org.ofono.PushNotificationAgent.ReceiveNotification", 0, data, info).Err; err != nil {
 		fmt.Printf("Notification error: %s", err)
 		os.Exit(1)
 	}

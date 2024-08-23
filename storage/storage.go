@@ -34,7 +34,7 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/ubports/nuntium/mms"
+	"gitlab.com/ubports/development/core/nuntium/mms"
 	"launchpad.net/go-xdg/v0"
 )
 

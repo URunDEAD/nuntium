@@ -21,7 +21,7 @@
 
 package storage
 
-import "github.com/ubports/nuntium/mms"
+import "gitlab.com/ubports/development/core/nuntium/mms"
 
 //SendInfo is a map where every key is a destination and the value can be any of:
 //

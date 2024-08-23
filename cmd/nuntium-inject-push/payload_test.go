@@ -4,7 +4,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/ubports/nuntium/mms"
+	"gitlab.com/ubports/development/core/nuntium/mms"
 )
 
 func TestGetMRetrieveConfPayload(t *testing.T) {

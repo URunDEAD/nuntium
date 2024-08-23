@@ -21,7 +21,9 @@
 
 package ofono
 
-import "launchpad.net/go-dbus/v1"
+import (
+	"github.com/godbus/dbus/v5"
+)
 
 const (
 	AGENT_TAG                         = dbus.ObjectPath("/nuntium")
@@ -37,7 +39,7 @@ const (
 
 type PropertiesType map[string]dbus.Variant
 
-func getModems(conn *dbus.Connection) (modemPaths []dbus.ObjectPath, err error) {
+func getModems(conn *dbus.Conn) (modemPaths []dbus.ObjectPath, err error) {
 	modemsReply, err := getOfonoProps(conn, "/", OFONO_SENDER, "org.ofono.Manager", "GetModems")
 	if err != nil {
 		return nil, err
@@ -46,24 +48,4 @@ func getModems(conn *dbus.Connection) (modemPaths []dbus.ObjectPath, err error) 
 		modemPaths = append(modemPaths, modemReply.ObjectPath)
 	}
 	return modemPaths, nil
-}
-
-func connectToPropertySignal(conn *dbus.Connection, path dbus.ObjectPath, inter string) (*dbus.SignalWatch, error) {
-	w, err := conn.WatchSignal(&dbus.MatchRule{
-		Type:      dbus.TypeSignal,
-		Sender:    OFONO_SENDER,
-		Interface: inter,
-		Member:    "PropertyChanged",
-		Path:      path})
-	return w, err
-}
-
-func connectToSignal(conn *dbus.Connection, path dbus.ObjectPath, inter, member string) (*dbus.SignalWatch, error) {
-	w, err := conn.WatchSignal(&dbus.MatchRule{
-		Type:      dbus.TypeSignal,
-		Sender:    OFONO_SENDER,
-		Interface: inter,
-		Member:    member,
-		Path:      path})
-	return w, err
 }

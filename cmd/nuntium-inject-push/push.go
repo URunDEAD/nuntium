@@ -6,8 +6,9 @@ import (
 	"net/url"
 	"strconv"
 
-	"github.com/ubports/nuntium/mms"
-	"launchpad.net/go-dbus/v1"
+	"github.com/godbus/dbus/v5"
+
+	"gitlab.com/ubports/development/core/nuntium/mms"
 )
 
 const (
@@ -181,18 +182,21 @@ func getMNotificationIndPayload(args mainFlags) []byte {
 }
 
 func push(args mainFlags) error {
-	conn, err := dbus.Connect(dbus.SystemBus)
+	conn, err := dbus.ConnectSystemBus()
 	if err != nil {
 		return err
 	}
 
 	obj := conn.Object(args.EndPoint, "/nuntium")
 
-	info := map[string]*dbus.Variant{"LocalSentTime": &dbus.Variant{"2014-02-05T08:29:55-0300"},
-		"Sender": &dbus.Variant{args.Sender}}
+	sent := dbus.MakeVariant("2014-02-05T08:29:55-0300")
+	sender := dbus.MakeVariant(args.Sender)
+	info := map[string]*dbus.Variant{
+		"LocalSentTime": &sent,
+		"Sender": &sender,
+	}
 
-	reply, err := obj.Call(pushInterface, pushMethod, getMNotificationIndPayload(args), info)
-	if err != nil || reply.Type == dbus.TypeError {
+	if err := obj.Call(pushInterface + "." + pushMethod, 0, getMNotificationIndPayload(args), info).Err; err != nil {
 		return fmt.Errorf("notification error: %s", err)
 	}
 

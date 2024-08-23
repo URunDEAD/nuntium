@@ -27,8 +27,9 @@ import (
 	"log"
 	"sync"
 
-	"github.com/ubports/nuntium/mms"
-	"launchpad.net/go-dbus/v1"
+	"github.com/godbus/dbus/v5"
+
+	"gitlab.com/ubports/development/core/nuntium/mms"
 )
 
 /*
@@ -40,7 +41,7 @@ type OfonoPushNotification struct {
 }
 
 type PushAgent struct {
-	conn           *dbus.Connection
+	conn           *dbus.Conn
 	modem          dbus.ObjectPath
 	Push           chan *PushPDU
 	messageChannel chan *dbus.Message
@@ -56,7 +57,7 @@ func (agent *PushAgent) Register() (err error) {
 	agent.m.Lock()
 	defer agent.m.Unlock()
 	if agent.conn == nil {
-		if agent.conn, err = dbus.Connect(dbus.SystemBus); err != nil {
+		if agent.conn, err = dbus.ConnectSystemBus(); err != nil {
 			return err
 		}
 	}
@@ -65,16 +66,21 @@ func (agent *PushAgent) Register() (err error) {
 		return nil
 	}
 	agent.Registered = true
-	log.Print("Registering agent for ", agent.modem, " on path ", AGENT_TAG, " and name ", agent.conn.UniqueName)
+	log.Print("Registering agent for ", agent.modem, " on path ", AGENT_TAG, " and name ", agent.conn.Names()[0])
 	obj := agent.conn.Object("org.ofono", agent.modem)
-	_, err = obj.Call(PUSH_NOTIFICATION_INTERFACE, "RegisterAgent", AGENT_TAG)
-	if err != nil {
-		return fmt.Errorf("Cannot register agent for %s: %s", agent.modem, err)
+	if c := obj.Call(PUSH_NOTIFICATION_INTERFACE + ".RegisterAgent", 0, AGENT_TAG); c.Err != nil {
+		return fmt.Errorf("Cannot register agent for %s: %s", agent.modem, c.Err)
 	}
 	agent.Push = make(chan *PushPDU)
-	agent.messageChannel = make(chan *dbus.Message)
-	go agent.watchDBusMethodCalls()
-	agent.conn.RegisterObjectPath(AGENT_TAG, agent.messageChannel)
+
+	exportMap := map[string]string{
+		"receiveNotification": "ReceiveNotification",
+		"release": "Release",
+	}
+	if err := agent.conn.ExportWithMap(agent, exportMap, AGENT_TAG, PUSH_NOTIFICATION_AGENT_INTERFACE); err != nil {
+		panic(err)
+	}
+
 	log.Print("Agent Registered for ", agent.modem, " on path ", AGENT_TAG)
 	return nil
 }
@@ -88,66 +94,45 @@ func (agent *PushAgent) Unregister() error {
 	}
 	log.Print("Unregistering agent on ", agent.modem)
 	obj := agent.conn.Object("org.ofono", agent.modem)
-	_, err := obj.Call(PUSH_NOTIFICATION_INTERFACE, "UnregisterAgent", AGENT_TAG)
-	if err != nil {
-		log.Print("Unregister failed ", err)
-		return err
+	if c := obj.Call(PUSH_NOTIFICATION_INTERFACE + ".UnregisterAgent", 0, AGENT_TAG); c.Err != nil {
+		log.Print("Unregister failed ", c.Err)
+		return c.Err
 	}
-	agent.release()
+	agent.doRelease()
 	agent.modem = dbus.ObjectPath("")
 	return nil
 }
 
-func (agent *PushAgent) release() {
+func (agent *PushAgent) doRelease() {
 	agent.Registered = false
-	//BUG this seems to not return, but I can't close the channel or panic
-	agent.conn.UnregisterObjectPath(AGENT_TAG)
+	// remove export
+	agent.conn.Export(nil, AGENT_TAG, PUSH_NOTIFICATION_AGENT_INTERFACE)
 	close(agent.Push)
 	agent.Push = nil
 	close(agent.messageChannel)
 	agent.messageChannel = nil
 }
 
-func (agent *PushAgent) watchDBusMethodCalls() {
-	var reply *dbus.Message
-	for msg := range agent.messageChannel {
-		switch {
-		case msg.Interface == PUSH_NOTIFICATION_AGENT_INTERFACE && msg.Member == "ReceiveNotification":
-			reply = agent.notificationReceived(msg)
-		case msg.Interface == PUSH_NOTIFICATION_AGENT_INTERFACE && msg.Member == "Release":
-			log.Printf("Push Agent on %s received Release", agent.modem)
-			reply = dbus.NewMethodReturnMessage(msg)
-			agent.release()
-		default:
-			log.Print("Received unkown method call on", msg.Interface, msg.Member)
-			reply = dbus.NewErrorMessage(msg, "org.freedesktop.DBus.Error.UnknownMethod", "Unknown method")
-		}
-		if err := agent.conn.Send(reply); err != nil {
-			log.Print("Could not send reply: ", err)
-		}
+func (agent *PushAgent) receiveNotification(data []byte, info map[string]*dbus.Variant) *dbus.Error {
+	push := &OfonoPushNotification{data, info}
+	log.Print("Received ReceiveNotification() method call from ", push.Info["Sender"].Value())
+	log.Print("Push data\n", hex.Dump(push.Data))
+	dec := NewDecoder(push.Data)
+	pdu := new(PushPDU)
+	if err := dec.Decode(pdu); err != nil {
+		log.Print("Error ", err)
+		return dbus.NewError("org.freedesktop.DBus.Error", []interface{}{"DecodeError"})
 	}
+	// TODO later switch on ApplicationId and ContentType to different channels
+	if pdu.ApplicationId == mms.PUSH_APPLICATION_ID && pdu.ContentType == mms.VND_WAP_MMS_MESSAGE {
+		agent.Push <- pdu
+	} else {
+		log.Print("Unhandled push pdu", pdu)
+	}
+	return nil
 }
 
-func (agent *PushAgent) notificationReceived(msg *dbus.Message) (reply *dbus.Message) {
-	var push OfonoPushNotification
-	if err := msg.Args(&(push.Data), &(push.Info)); err != nil {
-		log.Print("Error in received ReceiveNotification() method call ", msg)
-		return dbus.NewErrorMessage(msg, "org.freedesktop.DBus.Error", "FormatError")
-	} else {
-		log.Print("Received ReceiveNotification() method call from ", push.Info["Sender"].Value)
-		log.Print("Push data\n", hex.Dump(push.Data))
-		dec := NewDecoder(push.Data)
-		pdu := new(PushPDU)
-		if err := dec.Decode(pdu); err != nil {
-			log.Print("Error ", err)
-			return dbus.NewErrorMessage(msg, "org.freedesktop.DBus.Error", "DecodeError")
-		}
-		// TODO later switch on ApplicationId and ContentType to different channels
-		if pdu.ApplicationId == mms.PUSH_APPLICATION_ID && pdu.ContentType == mms.VND_WAP_MMS_MESSAGE {
-			agent.Push <- pdu
-		} else {
-			log.Print("Unhandled push pdu", pdu)
-		}
-		return dbus.NewMethodReturnMessage(msg)
-	}
+func (agent *PushAgent) release() {
+	log.Printf("Push Agent on %s received Release", agent.modem)
+	agent.doRelease()
 }

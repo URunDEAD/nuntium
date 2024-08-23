@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ubports/nuntium/mms"
+	"gitlab.com/ubports/development/core/nuntium/mms"
 )
 
 func TestGetMNotificationIndPayload(t *testing.T) {
