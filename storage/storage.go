@@ -35,7 +35,7 @@ import (
 	"time"
 
 	"gitlab.com/ubports/development/core/nuntium/mms"
-	"launchpad.net/go-xdg/v0"
+	"github.com/adrg/xdg"
 )
 
 const SUBPATH = "nuntium/store"
@@ -50,7 +50,7 @@ func Create(modemId string, mNotificationInd *mms.MNotificationInd) (MMSState, e
 		ModemId:          modemId,
 		MNotificationInd: mNotificationInd,
 	}
-	storePath, err := xdg.Data.Ensure(path.Join(SUBPATH, mNotificationInd.UUID+".db"))
+	storePath, err := xdg.DataFile(path.Join(SUBPATH, mNotificationInd.UUID+".db"))
 	if err != nil {
 		return MMSState{}, err
 	}
@@ -66,7 +66,7 @@ func Create(modemId string, mNotificationInd *mms.MNotificationInd) (MMSState, e
 func Destroy(uuid string) (err error) {
 	errs := Multierror{}
 
-	if path, err := xdg.Data.Find(path.Join(SUBPATH, uuid+".db")); err == nil {
+	if path, err := xdg.SearchDataFile(path.Join(SUBPATH, uuid+".db")); err == nil {
 		if err := os.Remove(path); err != nil {
 			errs = append(errs, ErrorRemovingFile{path, err})
 		}
@@ -80,13 +80,13 @@ func Destroy(uuid string) (err error) {
 		}
 	}
 
-	if path, err := xdg.Cache.Find(path.Join(SUBPATH, uuid+".m-notifyresp.ind")); err == nil {
+	if path, err := xdg.SearchCacheFile(path.Join(SUBPATH, uuid+".m-notifyresp.ind")); err == nil {
 		if err := os.Remove(path); err != nil {
 			errs = append(errs, ErrorRemovingFile{path, err})
 		}
 	}
 
-	if path, err := xdg.Cache.Find(path.Join(SUBPATH, uuid+".m-send.req")); err == nil {
+	if path, err := xdg.SearchCacheFile(path.Join(SUBPATH, uuid+".m-send.req")); err == nil {
 		if err := os.Remove(path); err != nil {
 			errs = append(errs, ErrorRemovingFile{path, err})
 		}
@@ -104,7 +104,7 @@ func CreateResponseFile(uuid string) (*os.File, error) {
 		return nil, fmt.Errorf("error retrieving message state: %w", err)
 	}
 
-	filePath, err := xdg.Cache.Ensure(path.Join(SUBPATH, uuid+".m-notifyresp.ind"))
+	filePath, err := xdg.CacheFile(path.Join(SUBPATH, uuid+".m-notifyresp.ind"))
 	if err != nil {
 		return nil, err
 	}
@@ -123,7 +123,7 @@ func UpdateMNotificationInd(mNotificationInd *mms.MNotificationInd) (MMSState, e
 	newState := oldState
 	newState.MNotificationInd = mNotificationInd
 
-	storePath, err := xdg.Data.Find(path.Join(SUBPATH, mNotificationInd.UUID+".db"))
+	storePath, err := xdg.SearchDataFile(path.Join(SUBPATH, mNotificationInd.UUID+".db"))
 	if err != nil {
 		return oldState, err
 	}
@@ -152,7 +152,7 @@ func UpdateDownloaded(uuid, filePath string) (MMSState, error) {
 	}
 
 	// Move downloaded file (filePath) to xdg data storage.
-	mmsPath, err := xdg.Data.Ensure(path.Join(SUBPATH, uuid+".mms"))
+	mmsPath, err := xdg.DataFile(path.Join(SUBPATH, uuid+".mms"))
 	if err != nil {
 		return oldState, err
 	}
@@ -166,7 +166,7 @@ func UpdateDownloaded(uuid, filePath string) (MMSState, error) {
 	newState := oldState
 	newState.State = DOWNLOADED
 
-	storePath, err := xdg.Data.Find(path.Join(SUBPATH, uuid+".db"))
+	storePath, err := xdg.SearchDataFile(path.Join(SUBPATH, uuid+".db"))
 	if err != nil {
 		return oldState, err
 	}
@@ -197,7 +197,7 @@ func UpdateReceived(uuid string) (MMSState, error) {
 	newState := oldState
 	newState.State = RECEIVED
 
-	storePath, err := xdg.Data.Find(path.Join(SUBPATH, uuid+".db"))
+	storePath, err := xdg.SearchDataFile(path.Join(SUBPATH, uuid+".db"))
 	if err != nil {
 		return oldState, err
 	}
@@ -228,7 +228,7 @@ func UpdateResponded(uuid string) (MMSState, error) {
 	newState := oldState
 	newState.State = RESPONDED
 
-	storePath, err := xdg.Data.Find(path.Join(SUBPATH, uuid+".db"))
+	storePath, err := xdg.SearchDataFile(path.Join(SUBPATH, uuid+".db"))
 	if err != nil {
 		return oldState, err
 	}
@@ -251,7 +251,7 @@ func SetTelepathyErrorNotified(uuid string) (MMSState, error) {
 	newState := oldState
 	newState.TelepathyErrorNotified = true
 
-	storePath, err := xdg.Data.Find(path.Join(SUBPATH, uuid+".db"))
+	storePath, err := xdg.SearchDataFile(path.Join(SUBPATH, uuid+".db"))
 	if err != nil {
 		return oldState, err
 	}
@@ -270,7 +270,7 @@ func CreateSendFile(uuid string) (*os.File, error) {
 	state := MMSState{
 		State: DRAFT,
 	}
-	storePath, err := xdg.Data.Ensure(path.Join(SUBPATH, uuid+".db"))
+	storePath, err := xdg.DataFile(path.Join(SUBPATH, uuid+".db"))
 	if err != nil {
 		return nil, err
 	}
@@ -278,7 +278,7 @@ func CreateSendFile(uuid string) (*os.File, error) {
 		os.Remove(storePath)
 		return nil, err
 	}
-	filePath, err := xdg.Cache.Ensure(path.Join(SUBPATH, uuid+".m-send.req"))
+	filePath, err := xdg.CacheFile(path.Join(SUBPATH, uuid+".m-send.req"))
 	if err != nil {
 		return nil, err
 	}
@@ -288,13 +288,13 @@ func CreateSendFile(uuid string) (*os.File, error) {
 // Returns .mms file path to message identified by uuid.
 // If file doesn't exists, a non nil error is returned.
 func GetMMS(uuid string) (string, error) {
-	return xdg.Data.Find(path.Join(SUBPATH, uuid+".mms"))
+	return xdg.SearchDataFile(path.Join(SUBPATH, uuid+".mms"))
 }
 
 // Gets message state from storage stored under uuid.
 // Returns empty state and a non nil error if message not stored or load failed.
 func GetMMSState(uuid string) (MMSState, error) {
-	storePath, err := xdg.Data.Find(path.Join(SUBPATH, uuid+".db"))
+	storePath, err := xdg.SearchDataFile(path.Join(SUBPATH, uuid+".db"))
 	if err != nil {
 		return MMSState{}, err
 	}
@@ -356,7 +356,7 @@ func writeState(state MMSState, storePath string) error {
 func GetStoredUUIDs() []string {
 	// Search for all *.db files in xdg data directory in SUBPATH subfolder and extract UUID from filenames.
 
-	storeDir, err := xdg.Data.Find(SUBPATH)
+	storeDir, err := xdg.SearchDataFile(SUBPATH)
 	if err != nil {
 		log.Printf("Storage directory %s not found in xdg data directories", SUBPATH)
 		return nil

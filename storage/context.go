@@ -32,7 +32,7 @@ import (
 	"log"
 
 	"github.com/godbus/dbus/v5"
-	"launchpad.net/go-xdg/v0"
+	"github.com/adrg/xdg"
 )
 
 var preferredContextPath string = filepath.Join(filepath.Base(os.Args[0]), "preferredContext")
@@ -45,7 +45,7 @@ func SetPreferredContext(identity string, pcObjectPath dbus.ObjectPath) error {
 	contextMutex.Lock()
 	defer contextMutex.Unlock()
 
-	pcFilePath, err := xdg.Cache.Ensure(preferredContextPath)
+	pcFilePath, err := xdg.CacheFile(preferredContextPath)
 	if err != nil {
 		return err
 	}
@@ -56,7 +56,7 @@ func GetPreferredContext(identity string) (pcObjectPath dbus.ObjectPath, err err
 	contextMutex.Lock()
 	defer contextMutex.Unlock()
 
-	pcFilePath, err := xdg.Cache.Find(preferredContextPath)
+	pcFilePath, err := xdg.SearchCacheFile(preferredContextPath)
 	if err != nil {
 		return pcObjectPath, err
 	}
