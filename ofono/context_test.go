@@ -25,7 +25,7 @@ import (
 	"errors"
 
 	"github.com/godbus/dbus/v5"
-	. "launchpad.net/gocheck"
+	. "gopkg.in/check.v1"
 )
 
 type ContextTestSuite struct {

@@ -24,7 +24,7 @@ package mms
 import (
 	"bytes"
 
-	. "launchpad.net/gocheck"
+	. "gopkg.in/check.v1"
 )
 
 type EncodeDecodeTestSuite struct {
