@@ -327,12 +327,11 @@ func (s *ContextTestSuite) TestOnePreferredContext(c *C) {
 }
 
 func (s *ContextTestSuite) TestGetProxy(c *C) {
-	c.Skip("FIXME: dbus.MakeVariant() panics if a map keys are not of int, float or string type: https://github.com/godbus/dbus/blob/v5.1.0/sig.go#L112")
 	context := OfonoContext{
 		ObjectPath: "/ril_0/context1",
 		Properties: makeGenericContextProperty("Context1", contextTypeInternet, true, true, true, false),
 	}
-	m := make(map[interface{}]interface{})
+	m := make(map[string]dbus.Variant)
 	m["Proxy"] = dbus.MakeVariant(proxy.Host)
 	m["ProxyPort"] = dbus.MakeVariant(uint16(proxy.Port))
 	context.Properties["Settings"] = dbus.MakeVariant(m)
@@ -354,12 +353,11 @@ func (s *ContextTestSuite) TestGetProxyNoProxy(c *C) {
 }
 
 func (s *ContextTestSuite) TestGetProxyNoPort(c *C) {
-	c.Skip("FIXME: dbus.MakeVariant() panics if a map keys are not of int, float or string type: https://github.com/godbus/dbus/blob/v5.1.0/sig.go#L112")
 	context := OfonoContext{
 		ObjectPath: "/ril_0/context1",
 		Properties: makeGenericContextProperty("Context1", contextTypeInternet, true, true, true, false),
 	}
-	m := make(map[interface{}]interface{})
+	m := make(map[string]dbus.Variant)
 	m["Proxy"] = dbus.MakeVariant(proxy.Host)
 	context.Properties["Settings"] = dbus.MakeVariant(m)
 

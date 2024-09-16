@@ -7,8 +7,9 @@ import (
 	"github.com/godbus/dbus/v5"
 )
 
+var invalidSig, _ = dbus.ParseSignature("")
+
 func TestMessage_Exists(t *testing.T) {
-	t.Skip("FIXME dbus.MakeVariant() panics on nil")
 	testCases := []struct {
 		name string
 		m    Message
@@ -17,7 +18,7 @@ func TestMessage_Exists(t *testing.T) {
 		{},
 		{"nil", Message(nil), false},
 		{"empty", Message{}, true},
-		{"not empty", Message{"aaa": dbus.MakeVariant(nil)}, true},
+		{"not empty", Message{"aaa": dbus.MakeVariantWithSignature(nil, invalidSig)}, true},
 	}
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -30,7 +31,6 @@ func TestMessage_Exists(t *testing.T) {
 }
 
 func TestMessage_IsNew(t *testing.T) {
-	t.Skip("FIXME dbus.MakeVariant() panics on nil")
 	testCases := []struct {
 		name string
 		m    Message
@@ -39,8 +39,7 @@ func TestMessage_IsNew(t *testing.T) {
 	}{
 		{"nil", Message(nil), false, ErrorNonExistentMessage},
 		{"empty", Message{}, false, ErrorMessagePropertyMissing(string(FieldNewEvent))},
-		{"missing", Message{"aaa": dbus.MakeVariant(nil)}, false, ErrorMessagePropertyMissing(string(FieldNewEvent))},
-		{"wrong type nil", Message{string(FieldNewEvent): dbus.MakeVariant(nil)}, false, ErrorMessagePropertyType{string(FieldNewEvent), false, nil}},
+		{"missing", Message{"aaa": dbus.MakeVariantWithSignature(nil, invalidSig)}, false, ErrorMessagePropertyMissing(string(FieldNewEvent))},
 		{"wrong type int", Message{string(FieldNewEvent): dbus.MakeVariant(10)}, false, ErrorMessagePropertyType{string(FieldNewEvent), false, 10}},
 		{"true", Message{string(FieldNewEvent): dbus.MakeVariant(true)}, true, nil},
 		{"false", Message{string(FieldNewEvent): dbus.MakeVariant(false)}, false, nil},
@@ -56,7 +55,6 @@ func TestMessage_IsNew(t *testing.T) {
 }
 
 func TestMessage_Status(t *testing.T) {
-	t.Skip("FIXME dbus.MakeVariant() panics on nil")
 	testCases := []struct {
 		name string
 		m    Message
@@ -65,10 +63,8 @@ func TestMessage_Status(t *testing.T) {
 	}{
 		{"nil", Message(nil), 0, ErrorNonExistentMessage},
 		{"empty", Message{}, 0, ErrorMessagePropertyMissing(string(FieldMessageStatus))},
-		{"missing", Message{"aaa": dbus.MakeVariant(nil)}, 0, ErrorMessagePropertyMissing(string(FieldMessageStatus))},
-		{"wrong type nil", Message{string(FieldMessageStatus): dbus.MakeVariant(nil)}, 0, ErrorMessagePropertyType{string(FieldMessageStatus), int64(0), nil}},
+		{"missing", Message{"aaa": dbus.MakeVariantWithSignature(nil, invalidSig)}, 0, ErrorMessagePropertyMissing(string(FieldMessageStatus))},
 		{"wrong type bool", Message{string(FieldMessageStatus): dbus.MakeVariant(true)}, 0, ErrorMessagePropertyType{string(FieldMessageStatus), int64(0), bool(true)}},
-		{"wrong type int", Message{string(FieldMessageStatus): dbus.MakeVariant(int(0))}, 0, ErrorMessagePropertyType{string(FieldMessageStatus), int64(0), int(0)}},
 		{"wrong status -1", Message{string(FieldMessageStatus): dbus.MakeVariant(int64(-1))}, 0, ErrorUnknownMessageStatus(-1)},
 		{"status unknown", Message{string(FieldMessageStatus): dbus.MakeVariant(int64(0))}, MessageStatusUnknown, nil},
 		{"status delivered", Message{string(FieldMessageStatus): dbus.MakeVariant(int64(1))}, MessageStatusDelivered, nil},
