@@ -3,7 +3,7 @@ package history
 import (
 	"fmt"
 
-	"launchpad.net/go-dbus/v1"
+	"github.com/godbus/dbus/v5"
 )
 
 type MessageStatus int64
@@ -62,9 +62,9 @@ func (m Message) IsNew() (bool, error) {
 		return false, ErrorMessagePropertyMissing(string(FieldNewEvent))
 	}
 
-	newEvent, ok := v.Value.(bool)
-	if !ok {
-		return false, ErrorMessagePropertyType{string(FieldNewEvent), bool(false), v.Value}
+	var newEvent bool
+	if v.Store(&newEvent) != nil {
+		return false, ErrorMessagePropertyType{string(FieldNewEvent), bool(false), v.Value()}
 	}
 
 	return newEvent, nil
@@ -92,9 +92,9 @@ func (m Message) Status() (MessageStatus, error) {
 		return 0, ErrorMessagePropertyMissing(string(FieldMessageStatus))
 	}
 
-	status, ok := v.Value.(int64)
-	if !ok {
-		return 0, ErrorMessagePropertyType{string(FieldMessageStatus), int64(0), v.Value}
+	var status int64
+	if v.Store(&status) != nil {
+		return 0, ErrorMessagePropertyType{string(FieldMessageStatus), int64(0), v.Value()}
 	}
 
 	return messageStatusFromInt(status)

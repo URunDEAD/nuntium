@@ -25,8 +25,8 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/ubports/nuntium/mms"
-	. "launchpad.net/gocheck"
+	"gitlab.com/ubports/development/core/nuntium/mms"
+	. "gopkg.in/check.v1"
 )
 
 type PushDecodeTestSuite struct {

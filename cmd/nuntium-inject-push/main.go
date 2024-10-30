@@ -4,12 +4,8 @@ import (
 	"fmt"
 	"net/http"
 	"os"
-	"os/exec"
-	"path/filepath"
-	"strings"
 
 	flags "github.com/jessevdk/go-flags"
-	"launchpad.net/go-xdg/v0"
 )
 
 type mainFlags struct {
@@ -18,7 +14,7 @@ type mainFlags struct {
 	// SenderNotification is only used in the push notification.
 	SenderNotification string `long:"sender-notification" description:"The sender of the message push notification (if not set or empty, it defaults to: +543515924906)"`
 	// EndPoint is the name where nuntium listens to on the System Bus.
-	EndPoint string `long:"end-point" description:"Dbus name where the nuntium agent is listening for push requests from ofono (if not set or empty, it tries to retrieve the end-point from logs)"`
+	EndPoint string `long:"end-point" description:"Dbus name where the nuntium agent is listening for push requests from ofono (if not set or empty, it tries to retrieve the end-point from logs)" required:"true"`
 	// MRetrieveConf is an alternative file to use as m-retrieve.conf, no mangling is done with it.
 	MRetrieveConf string `long:"m-retrieve-conf" description:"Use a specific m-retrieve.conf to test (the --sender flag will not be considered)"`
 	// DenialCount is an integer, which indicates how many times will MMS content serving be denied until successfuly served.
@@ -49,23 +45,6 @@ func main() {
 	parser := flags.NewParser(&args, flags.Default)
 	if _, err := parser.Parse(); err != nil {
 		os.Exit(1)
-	}
-
-	if args.EndPoint == "" {
-		cacheDir := filepath.Join(xdg.Cache.Dirs()[0], "upstart")
-		cmd := "find " + cacheDir + " -name 'nuntium*' | xargs zgrep 'Registering' | sed 's/^[^:]*://' | sort | tail -n1 | cut -d: -f4"
-		fmt.Printf("No end-point flag provided, trying to retrieve end-point from nuntium logs in: %s\n", cacheDir)
-		out, err := exec.Command("bash", "-c", cmd).CombinedOutput()
-		if err != nil {
-			fmt.Printf("Command \"%s\" execution error: %v\n", cmd, err)
-			os.Exit(1)
-		}
-		if len(out) == 0 {
-			fmt.Printf("No end-point found\n")
-			os.Exit(1)
-		}
-		args.EndPoint = ":" + strings.Split(strings.Split(string(out), "\n")[0], "\r")[0]
-		fmt.Printf("Using endpoint: \"%s\"\n", args.EndPoint)
 	}
 
 	fmt.Println("Creating web server to serve mms")

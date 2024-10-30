@@ -26,31 +26,32 @@ import (
 	"os"
 	"syscall"
 
-	"github.com/ubports/nuntium/ofono"
-	"github.com/ubports/nuntium/telepathy"
-	"launchpad.net/go-dbus/v1"
+	"github.com/godbus/dbus/v5"
+
+	"gitlab.com/ubports/development/core/nuntium/ofono"
+	"gitlab.com/ubports/development/core/nuntium/telepathy"
 )
 
 func main() {
 	var (
-		conn        *dbus.Connection
-		connSession *dbus.Connection
+		conn        *dbus.Conn
+		connSession *dbus.Conn
 		err         error
 	)
-	if connSession, err = dbus.Connect(dbus.SessionBus); err != nil {
+	if connSession, err = dbus.ConnectSessionBus(); err != nil {
 		log.Fatal("Connection error: ", err)
 	}
-	log.Print("Using session bus on ", connSession.UniqueName)
+	log.Print("Using session bus on ", connSession.Names()[0])
 
 	mmsManager, err := telepathy.NewMMSManager(connSession)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	if conn, err = dbus.Connect(dbus.SystemBus); err != nil {
+	if conn, err = dbus.ConnectSystemBus(); err != nil {
 		log.Fatal("Connection error: ", err)
 	}
-	log.Print("Using system bus on ", conn.UniqueName)
+	log.Print("Using system bus on ", conn.Names()[0])
 
 	modemManager := ofono.NewModemManager(conn)
 	mediators := make(map[dbus.ObjectPath]*Mediator)

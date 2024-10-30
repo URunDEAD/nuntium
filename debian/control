@@ -2,18 +2,19 @@ Source: nuntium
 Section: devel
 Priority: optional
 Maintainer: UBports developers <devs@ubports.com>
-Build-Depends: debhelper-compat (= 12),
+Build-Depends: debhelper-compat (= 13),
                dh-golang,
                golang-go,
-               golang-go-dbus-dev,
-               golang-go-flags-dev,
-               golang-go-xdg-dev,
+               golang-dbus-dev,
+               golang-github-adrg-xdg-dev,
+               golang-github-jessevdk-go-flags-dev,
+               golang-gitlab-ubports-development-core-go-ldm-dev,
                golang-gopkg-check.v1-dev,
-               golang-gitlab-ubports-core-go-ldm-dev,
 Standards-Version: 3.9.5
-Homepage: https://gitlab.com/ubports/core/nuntium
-Vcs-Browser: https://gitlab.com/ubports/core/nuntium
-Vcs-Git: https://gitlab.com/ubports/core/nuntium.git
+Homepage: https://gitlab.com/ubports/development/core/nuntium
+Vcs-Browser: https://gitlab.com/ubports/development/core/nuntium
+Vcs-Git: https://gitlab.com/ubports/development/core/nuntium.git
+XS-Go-Import-Path: gitlab.com/ubports/development/core/nuntium
 
 Package: nuntium
 Architecture: any
@@ -44,25 +45,11 @@ Description: Useful tools for working with MMS and nuntium.
  - Decode m-retrieve.conf messages
  - Stub an ofono push notification into nuntium.
 
-Package: golang-nuntium-mms-dev
+Package: golang-gitlab-ubports-development-core-nuntium-dev
 Architecture: all
 Depends: ${misc:Depends}
 Built-Using: ${misc:Built-Using}
-Description: Go library for manipulating MMS
+Description: Go library for manipulating MMS, interfacing with oFono and Telepathy-oFono
  This package handles MMS PDUs and has hooks for related actions in the MMS
- workflow
-
-Package: golang-nuntium-ofono-dev
-Architecture: all
-Depends: ${misc:Depends}
-Built-Using: ${misc:Built-Using}
-Description: Go library for interfacing with ofono
- Provides facilities to interface with ofono with regards to MMS through dbus
-
-Package: golang-nuntium-telepathy-dev
-Architecture: all
-Depends: ${misc:Depends}
-Built-Using: ${misc:Built-Using}
-Description: Go library for interfacing with telepathy-ofono
- Provides facilities to interface with telepathy ofono with regards to MMS
- through dbus
+ workflow. It also provides facilities to interface with oFono and
+ Telepathy-oFono with regards to MMS through DBus.

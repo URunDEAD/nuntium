@@ -30,12 +30,13 @@ import (
 	"sync"
 	"time"
 
-	"github.com/ubports/nuntium/mms"
-	"github.com/ubports/nuntium/ofono"
-	"github.com/ubports/nuntium/storage"
-	"github.com/ubports/nuntium/telepathy"
-	"github.com/ubports/nuntium/telepathy/history"
-	"launchpad.net/go-dbus/v1"
+	"github.com/godbus/dbus/v5"
+
+	"gitlab.com/ubports/development/core/nuntium/mms"
+	"gitlab.com/ubports/development/core/nuntium/ofono"
+	"gitlab.com/ubports/development/core/nuntium/storage"
+	"gitlab.com/ubports/development/core/nuntium/telepathy"
+	"gitlab.com/ubports/development/core/nuntium/telepathy/history"
 )
 
 type Mediator struct {
@@ -516,10 +517,8 @@ func (mediator *Mediator) handleOutgoingMessage(msg *telepathy.OutgoingMessage) 
 		cts = append(cts, ct)
 	}
 	mSendReq := mms.NewMSendReq(msg.Recipients, cts, useDeliveryReports)
-	if _, err := mediator.telepathyService.ReplySendMessage(msg.Reply, mSendReq.UUID); err != nil {
-		log.Print(err)
-		return
-	}
+	msg.UUID <- mSendReq.UUID
+	close(msg.UUID)
 	mediator.NewMSendReq <- mSendReq
 }
 
@@ -634,7 +633,7 @@ func (mediator *Mediator) uploadFile(filePath string) (string, error) {
 
 // By default this method returns true, unless it is strictly requested to disable.
 func mmsEnabled() bool {
-	conn, err := dbus.Connect(dbus.SystemBus)
+	conn, err := dbus.ConnectSystemBus()
 	if err != nil {
 		log.Printf("mmsEnabled: connecting to dbus failed: %v", err)
 		return true
@@ -647,20 +646,19 @@ func mmsEnabled() bool {
 	}
 	activeUser := dbus.ObjectPath("/org/freedesktop/Accounts/User" + usr.Uid)
 
-	obj := conn.Object("org.freedesktop.Accounts", activeUser)
-	reply, err := obj.Call("org.freedesktop.DBus.Properties", "Get", "com.ubuntu.touch.AccountsService.Phone", "MmsEnabled")
-	if err != nil || reply.Type == dbus.TypeError {
+	v, err := conn.Object("org.freedesktop.Accounts", activeUser).
+		GetProperty("com.ubuntu.touch.AccountsService.Phone.MmsEnabled")
+	if err != nil {
 		log.Printf("mmsEnabled: failed to get mms option: %v", err)
 		return true
 	}
-
-	mms := dbus.Variant{true}
-	if err := reply.Args(&mms); err != nil {
+	var mms bool
+	if err := v.Store(&mms); err != nil {
 		log.Printf("mmsEnabled: failed to get mms option reply: %v", err)
 		return true
 	}
 
-	return mms.Value.(bool)
+	return mms
 }
 
 func (mediator *Mediator) initializeMessages(modemId string) {

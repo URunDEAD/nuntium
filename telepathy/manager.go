@@ -25,69 +25,48 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/ubports/nuntium/mms"
-	"launchpad.net/go-dbus/v1"
+	"github.com/godbus/dbus/v5"
+
+	"gitlab.com/ubports/development/core/nuntium/mms"
 )
 
 type MMSManager struct {
-	conn     *dbus.Connection
-	msgChan  chan *dbus.Message
+	conn     *dbus.Conn
 	services []*MMSService
 }
 
-func NewMMSManager(conn *dbus.Connection) (*MMSManager, error) {
-	name := conn.RequestName(MMS_DBUS_NAME, dbus.NameFlagDoNotQueue)
-	err := <-name.C
+func NewMMSManager(conn *dbus.Conn) (*MMSManager, error) {
+	reply, err := conn.RequestName(MMS_DBUS_NAME, dbus.NameFlagDoNotQueue)
 	if err != nil {
-		return nil, fmt.Errorf("Could not aquire name %s", MMS_DBUS_NAME)
+		return nil, fmt.Errorf("Could not aquire name %s: %v", MMS_DBUS_NAME, err)
+	}
+	if reply != dbus.RequestNameReplyPrimaryOwner {
+		return nil, fmt.Errorf("Name %s already taken", MMS_DBUS_NAME)
 	}
 
-	log.Printf("Registered %s on bus as %s", conn.UniqueName, name.Name)
+	log.Printf("Registered %s on bus as %s", conn.Names()[0], MMS_DBUS_NAME)
 
-	manager := MMSManager{conn: conn, msgChan: make(chan *dbus.Message)}
-	go manager.watchDBusMethodCalls()
-	conn.RegisterObjectPath(MMS_DBUS_PATH, manager.msgChan)
+	manager := MMSManager{conn: conn}
+
+	exportMap := map[string]string{"getServices": "GetServices"}
+	if err := manager.conn.ExportWithMap(manager, exportMap, MMS_DBUS_PATH, MMS_MANAGER_DBUS_IFACE); err != nil {
+		panic(err)
+	}
 	return &manager, nil
 }
 
-func (manager *MMSManager) watchDBusMethodCalls() {
-	var reply *dbus.Message
-
-	for msg := range manager.msgChan {
-		switch {
-		case msg.Interface == MMS_MANAGER_DBUS_IFACE && msg.Member == "GetServices":
-			log.Print("Received GetServices()")
-			reply = manager.getServices(msg)
-		default:
-			log.Println("Received unkown method call on", msg.Interface, msg.Member)
-			reply = dbus.NewErrorMessage(msg, "org.freedesktop.DBus.Error.UnknownMethod", "Unknown method")
-		}
-		if err := manager.conn.Send(reply); err != nil {
-			log.Print("Could not send reply: ", err)
-		}
-	}
-}
-
-func (manager *MMSManager) getServices(msg *dbus.Message) *dbus.Message {
+func (manager *MMSManager) getServices() ([]Payload, *dbus.Error) {
+	log.Print("Received GetServices()")
 	var payloads []Payload
 	for i, _ := range manager.services {
 		payloads = append(payloads, manager.services[i].payload)
 	}
-	reply := dbus.NewMethodReturnMessage(msg)
-	if err := reply.AppendArgs(payloads); err != nil {
-		log.Print("Cannot parse payload data from services")
-		return dbus.NewErrorMessage(msg, "Error.InvalidArguments", "Cannot parse services")
-	}
-	return reply
+	return payloads, nil
 }
 
 func (manager *MMSManager) serviceAdded(payload *Payload) error {
 	log.Print("Service added ", payload.Path)
-	signal := dbus.NewSignalMessage(MMS_DBUS_PATH, MMS_MANAGER_DBUS_IFACE, serviceAddedSignal)
-	if err := signal.AppendArgs(payload.Path, payload.Properties); err != nil {
-		return err
-	}
-	if err := manager.conn.Send(signal); err != nil {
+	if err := manager.conn.Emit(MMS_DBUS_PATH, MMS_MANAGER_DBUS_IFACE + "." + serviceAddedSignal, payload.Path, payload.Properties); err != nil {
 		return fmt.Errorf("Cannot send ServiceAdded for %s", payload.Path)
 	}
 	return nil
@@ -109,12 +88,8 @@ func (manager *MMSManager) AddService(identity string, modemObjPath dbus.ObjectP
 
 func (manager *MMSManager) serviceRemoved(payload *Payload) error {
 	log.Print("Service removed ", payload.Path)
-	signal := dbus.NewSignalMessage(MMS_DBUS_PATH, MMS_MANAGER_DBUS_IFACE, serviceRemovedSignal)
-	if err := signal.AppendArgs(payload.Path); err != nil {
-		return err
-	}
-	if err := manager.conn.Send(signal); err != nil {
-		return fmt.Errorf("Cannot send ServiceRemoved for %s", payload.Path)
+	if err := manager.conn.Emit(MMS_DBUS_PATH, MMS_MANAGER_DBUS_IFACE + "." + serviceRemovedSignal, payload.Path); err != nil {
+		return fmt.Errorf("Cannot emit ServiceRemoved for %s", payload.Path)
 	}
 	return nil
 }

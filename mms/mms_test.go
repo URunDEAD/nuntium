@@ -27,7 +27,7 @@ import (
 	"testing"
 	"time"
 
-	. "launchpad.net/gocheck"
+	. "gopkg.in/check.v1"
 )
 
 type MMSTestSuite struct{}

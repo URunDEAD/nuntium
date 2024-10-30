@@ -27,7 +27,7 @@ import (
 	"log"
 	"time"
 
-	"gitlab.com/ubports/core/go-ldm"
+	"gitlab.com/ubports/development/core/go-ldm"
 )
 
 func (pdu *MNotificationInd) DownloadContent(proxyHost string, proxyPort int32) (string, error) {

@@ -24,7 +24,7 @@ package ofono
 import (
 	"log"
 
-	"launchpad.net/go-dbus/v1"
+	"github.com/godbus/dbus/v5"
 )
 
 type Modems map[dbus.ObjectPath]*Modem
@@ -33,10 +33,10 @@ type ModemManager struct {
 	ModemAdded   chan (*Modem)
 	ModemRemoved chan (*Modem)
 	modems       Modems
-	conn         *dbus.Connection
+	conn         *dbus.Conn
 }
 
-func NewModemManager(conn *dbus.Connection) *ModemManager {
+func NewModemManager(conn *dbus.Conn) *ModemManager {
 	return &ModemManager{
 		conn:         conn,
 		ModemAdded:   make(chan *Modem),
@@ -47,20 +47,30 @@ func NewModemManager(conn *dbus.Connection) *ModemManager {
 
 func (mm *ModemManager) Init() error {
 	//Use a different connection for the modem signals to avoid go-dbus blocking issues
-	conn, err := dbus.Connect(dbus.SystemBus)
+	conn, err := dbus.ConnectSystemBus()
 	if err != nil {
 		return err
 	}
 
-	modemAddedSignal, err := connectToSignal(conn, "/", OFONO_MANAGER_INTERFACE, "ModemAdded")
-	if err != nil {
+	if err := conn.AddMatchSignal(
+		dbus.WithMatchObjectPath("/"),
+		dbus.WithMatchInterface(OFONO_MANAGER_INTERFACE),
+		dbus.WithMatchMember("ModemAdded"),
+		dbus.WithMatchSender(OFONO_SENDER),
+		); err != nil {
 		return err
 	}
-	modemRemovedSignal, err := connectToSignal(conn, "/", OFONO_MANAGER_INTERFACE, "ModemRemoved")
-	if err != nil {
+	if err := conn.AddMatchSignal(
+		dbus.WithMatchObjectPath("/"),
+		dbus.WithMatchInterface(OFONO_MANAGER_INTERFACE),
+		dbus.WithMatchMember("ModemRemoved"),
+		dbus.WithMatchSender(OFONO_SENDER),
+		); err != nil {
 		return err
 	}
-	go mm.watchModems(modemAddedSignal, modemRemovedSignal)
+	signal := make(chan *dbus.Signal)
+	go mm.watchModems(signal)
+	conn.Signal(signal)
 
 	//Check for existing modems
 	modemPaths, err := getModems(conn)
@@ -74,19 +84,21 @@ func (mm *ModemManager) Init() error {
 	return nil
 }
 
-func (mm *ModemManager) watchModems(modemAdded, modemRemoved *dbus.SignalWatch) {
-	for {
+func (mm *ModemManager) watchModems(signal chan *dbus.Signal) {
+	const modemAdded = OFONO_MANAGER_INTERFACE + ".ModemAdded"
+	const modemRemoved = OFONO_MANAGER_INTERFACE + ".ModemRemoved"
+
+	for s := range signal {
 		var objectPath dbus.ObjectPath
-		select {
-		case m := <-modemAdded.C:
+		if s.Sender == OFONO_SENDER && s.Name == modemAdded {
 			var signalProps PropertiesType
-			if err := m.Args(&objectPath, &signalProps); err != nil {
+			if err := dbus.Store(s.Body, &objectPath, &signalProps); err != nil {
 				log.Print(err)
 				continue
 			}
 			mm.addModem(objectPath)
-		case m := <-modemRemoved.C:
-			if err := m.Args(&objectPath); err != nil {
+		} else if s.Sender == OFONO_SENDER && s.Name == modemRemoved {
+			if err := dbus.Store(s.Body, &objectPath); err != nil {
 				log.Print(err)
 				continue
 			}

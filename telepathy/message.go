@@ -26,7 +26,7 @@ import (
 	"log"
 	"sort"
 
-	"launchpad.net/go-dbus/v1"
+	"github.com/godbus/dbus/v5"
 )
 
 var validStatus sort.StringSlice
@@ -37,7 +37,7 @@ func init() {
 }
 
 type MessageInterface struct {
-	conn           *dbus.Connection
+	conn           *dbus.Conn
 	objectPath     dbus.ObjectPath
 	msgChan        chan *dbus.Message
 	deleteChan     chan dbus.ObjectPath
@@ -45,7 +45,7 @@ type MessageInterface struct {
 	status         string
 }
 
-func NewMessageInterface(conn *dbus.Connection, objectPath dbus.ObjectPath, deleteChan chan dbus.ObjectPath, redownloadChan chan dbus.ObjectPath) *MessageInterface {
+func NewMessageInterface(conn *dbus.Conn, objectPath dbus.ObjectPath, deleteChan chan dbus.ObjectPath, redownloadChan chan dbus.ObjectPath) *MessageInterface {
 	msgInterface := MessageInterface{
 		conn:           conn,
 		objectPath:     objectPath,
@@ -54,79 +54,46 @@ func NewMessageInterface(conn *dbus.Connection, objectPath dbus.ObjectPath, dele
 		msgChan:        make(chan *dbus.Message),
 		status:         "draft",
 	}
-	go msgInterface.watchDBusMethodCalls()
-	conn.RegisterObjectPath(msgInterface.objectPath, msgInterface.msgChan)
+	exportMap := map[string]string{
+		"delete": "Delete",
+		"redownload": "Redownload",
+	}
+	if err := msgInterface.conn.ExportWithMap(msgInterface, exportMap, msgInterface.objectPath, MMS_MESSAGE_DBUS_IFACE); err != nil {
+		panic(err)
+	}
 	return &msgInterface
 }
 
 func (msgInterface *MessageInterface) Close() {
 	close(msgInterface.msgChan)
 	msgInterface.msgChan = nil
-	msgInterface.conn.UnregisterObjectPath(msgInterface.objectPath)
+	msgInterface.conn.Export(nil, msgInterface.objectPath, MMS_MESSAGE_DBUS_IFACE)
 }
 
-func (msgInterface *MessageInterface) watchDBusMethodCalls() {
-	var reply *dbus.Message
-
-	for msg := range msgInterface.msgChan {
-		if msg.Interface != MMS_MESSAGE_DBUS_IFACE {
-			log.Println("Received unknown interface call on", msg.Interface, msg.Member)
-			reply = dbus.NewErrorMessage(
-				msg,
-				"org.freedesktop.DBus.Error.UnknownInterface",
-				fmt.Sprintf("No such interface '%s' at object path '%s'", msg.Interface, msg.Path),
-			)
-			if err := msgInterface.conn.Send(reply); err != nil {
-				log.Println("Could not send reply:", err)
-			}
-			continue
-		}
-		switch msg.Member {
-		case "Delete":
-			reply = dbus.NewMethodReturnMessage(msg)
-			//TODO implement store and forward
-			if err := msgInterface.conn.Send(reply); err != nil {
-				log.Println("Could not send reply:", err)
-			}
-			if msgInterface.deleteChan == nil {
-				log.Printf("Deletion of %s is not allowed", msg.Path)
-				continue
-			}
-			msgInterface.deleteChan <- msgInterface.objectPath
-		case "Redownload":
-			reply = dbus.NewMethodReturnMessage(msg)
-			//TODO implement store and forward
-			if err := msgInterface.conn.Send(reply); err != nil {
-				log.Println("Could not send reply:", err)
-			}
-			if msgInterface.redownloadChan == nil {
-				log.Printf("Redownload of %s is not allowed", msg.Path)
-				continue
-			}
-			msgInterface.redownloadChan <- msgInterface.objectPath
-		default:
-			log.Println("Received unknown method call on", msg.Interface, msg.Member)
-			reply = dbus.NewErrorMessage(
-				msg,
-				"org.freedesktop.DBus.Error.UnknownMethod",
-				fmt.Sprintf("No such method '%s' at object path '%s'", msg.Member, msg.Path),
-			)
-			if err := msgInterface.conn.Send(reply); err != nil {
-				log.Println("Could not send reply:", err)
-			}
-		}
+func (msgInterface *MessageInterface) delete() *dbus.Error {
+	if msgInterface.deleteChan == nil {
+		log.Printf("Deletion of %s is not allowed", msgInterface.objectPath)
+		return nil
 	}
+	msgInterface.deleteChan <- msgInterface.objectPath
+	return nil
+}
+
+func (msgInterface *MessageInterface) redownload() *dbus.Error {
+	if msgInterface.redownloadChan == nil {
+		log.Printf("Redownload of %s is not allowed", msgInterface.objectPath)
+		return nil
+	}
+	msgInterface.redownloadChan <- msgInterface.objectPath
+	return nil
 }
 
 func (msgInterface *MessageInterface) StatusChanged(status string) error {
 	i := validStatus.Search(status)
 	if i < validStatus.Len() && validStatus[i] == status {
 		msgInterface.status = status
-		signal := dbus.NewSignalMessage(msgInterface.objectPath, MMS_MESSAGE_DBUS_IFACE, propertyChangedSignal)
-		if err := signal.AppendArgs(statusProperty, dbus.Variant{status}); err != nil {
-			return err
-		}
-		if err := msgInterface.conn.Send(signal); err != nil {
+		if err := msgInterface.conn.Emit(msgInterface.objectPath,
+			MMS_MESSAGE_DBUS_IFACE + "." + propertyChangedSignal, statusProperty, dbus.MakeVariant(status)); err != nil {
 			return err
 		}
 		log.Print("Status changed for ", msgInterface.objectPath, " to ", status)
@@ -137,7 +104,7 @@ func (msgInterface *MessageInterface) StatusChanged(status string) error {
 
 func (msgInterface *MessageInterface) GetPayload() *Payload {
 	properties := make(map[string]dbus.Variant)
-	properties["Status"] = dbus.Variant{msgInterface.status}
+	properties["Status"] = dbus.MakeVariant(msgInterface.status)
 	return &Payload{
 		Path:       msgInterface.objectPath,
 		Properties: properties,

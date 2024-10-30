@@ -23,18 +23,20 @@ package telepathy
 
 import (
 	"encoding/json"
-	"errors"
+	_ "errors"
 	"fmt"
 	"log"
 	"path/filepath"
-	"reflect"
+	_ "reflect"
 	"strings"
 	"time"
 
-	"github.com/ubports/nuntium/mms"
-	"github.com/ubports/nuntium/storage"
-	"github.com/ubports/nuntium/telepathy/history"
-	"launchpad.net/go-dbus/v1"
+	"github.com/godbus/dbus/v5"
+	"github.com/godbus/dbus/v5/prop"
+
+	"gitlab.com/ubports/development/core/nuntium/mms"
+	"gitlab.com/ubports/development/core/nuntium/storage"
+	"gitlab.com/ubports/development/core/nuntium/telepathy/history"
 )
 
 //Payload is used to build the dbus messages; this is a workaround as v1 of go-dbus
@@ -47,7 +49,7 @@ type Payload struct {
 type MMSService struct {
 	payload              Payload
 	Properties           map[string]dbus.Variant
-	conn                 *dbus.Connection
+	conn                 *dbus.Conn
 	msgChan              chan *dbus.Message
 	messageHandlers      map[dbus.ObjectPath]*MessageInterface
 	msgDeleteChan        chan dbus.ObjectPath
@@ -74,15 +76,15 @@ type OutAttachment struct {
 type OutgoingMessage struct {
 	Recipients  []string
 	Attachments []OutAttachment
-	Reply       *dbus.Message
+	UUID        chan string
 }
 
-func NewMMSService(conn *dbus.Connection, modemObjPath dbus.ObjectPath, identity string, outgoingChannel chan *OutgoingMessage, useDeliveryReports bool, mNotificationIndChan chan<- *mms.MNotificationInd) *MMSService {
+func NewMMSService(conn *dbus.Conn, modemObjPath dbus.ObjectPath, identity string, outgoingChannel chan *OutgoingMessage, useDeliveryReports bool, mNotificationIndChan chan<- *mms.MNotificationInd) *MMSService {
 	properties := make(map[string]dbus.Variant)
-	properties[identityProperty] = dbus.Variant{identity}
+	properties[identityProperty] = dbus.MakeVariant(identity)
 	serviceProperties := make(map[string]dbus.Variant)
-	serviceProperties[useDeliveryReportsProperty] = dbus.Variant{useDeliveryReports}
-	serviceProperties[modemObjectPathProperty] = dbus.Variant{modemObjPath}
+	serviceProperties[useDeliveryReportsProperty] = dbus.MakeVariant(useDeliveryReports)
+	serviceProperties[modemObjectPathProperty] = dbus.MakeVariant(modemObjPath)
 	payload := Payload{
 		Path:       dbus.ObjectPath(MMS_DBUS_PATH + "/" + identity),
 		Properties: properties,
@@ -99,11 +101,66 @@ func NewMMSService(conn *dbus.Connection, modemObjPath dbus.ObjectPath, identity
 		identity:             identity,
 		mNotificationIndChan: mNotificationIndChan,
 	}
-	go service.watchDBusMethodCalls()
+
 	go service.watchMessageDeleteCalls()
 	go service.watchMessageRedownloadCalls()
-	conn.RegisterObjectPath(payload.Path, service.msgChan)
+
+	if pc, err := service.GetPreferredContext(); err == nil {
+		service.Properties[preferredContextProperty] = dbus.MakeVariant(pc)
+	} else {
+		// Using "/" as an invalid 'path' even though it could be considered 'incorrect'
+		service.Properties[preferredContextProperty] = dbus.MakeVariant(dbus.ObjectPath("/"))
+	}
+	propsMap := prop.Map{
+		MMS_SERVICE_DBUS_IFACE: {
+			preferredContextProperty: {
+				Value: service.Properties[preferredContextProperty],
+				Writable: true,
+				Emit: prop.EmitTrue,
+				Callback: service.setPropPreferredContext,
+			},
+		},
+	}
+	prop.Export(service.conn, payload.Path, propsMap)
+	exportMap := map[string]string{
+		"getMessages": "GetMessages",
+		"sendMessage": "SendMessage",
+		"getProperties": "GetProperties",
+	}
+	if err := service.conn.ExportWithMap(service, exportMap, payload.Path, MMS_MESSAGE_DBUS_IFACE); err != nil {
+		panic(err)
+	}
 	return &service
+}
+
+func (service *MMSService) getMessages() ([]Payload, *dbus.Error) {
+	//TODO implement store and forward
+	return []Payload{}, nil
+}
+
+func (service *MMSService) sendMessage(msg dbus.Message, recipients []string, attachments []OutAttachment) (dbus.ObjectPath, *dbus.Error) {
+	outMessage := &OutgoingMessage{
+		Recipients: recipients,
+		Attachments: attachments,
+		UUID: make(chan string),
+	}
+	service.outMessage <- outMessage
+	uuid := <-outMessage.UUID
+	msgObjectPath := service.GenMessagePath(uuid)
+	msgIface := NewMessageInterface(service.conn, msgObjectPath, service.msgDeleteChan, nil)
+	service.messageHandlers[msgObjectPath] = msgIface
+	service.MessageAdded(msgIface.GetPayload())
+	return msgObjectPath, nil
+}
+
+func (service *MMSService) getProperties() (map[string]dbus.Variant, *dbus.Error) {
+	if pc, err := service.GetPreferredContext(); err == nil {
+		service.Properties[preferredContextProperty] = dbus.MakeVariant(pc)
+	} else {
+		// Using "/" as an invalid 'path' even though it could be considered 'incorrect'
+		service.Properties[preferredContextProperty] = dbus.MakeVariant(dbus.ObjectPath("/"))
+	}
+	return service.Properties, nil
 }
 
 func (*MMSService) getMMSState(objectPath dbus.ObjectPath) (storage.MMSState, error) {
@@ -164,84 +221,6 @@ func (service *MMSService) watchMessageRedownloadCalls() {
 	}
 }
 
-func (service *MMSService) watchDBusMethodCalls() {
-	for msg := range service.msgChan {
-		var reply *dbus.Message
-		if msg.Interface != MMS_SERVICE_DBUS_IFACE {
-			log.Println("Received unknown interface call on", msg.Interface, msg.Member)
-			reply = dbus.NewErrorMessage(
-				msg,
-				"org.freedesktop.DBus.Error.UnknownInterface",
-				fmt.Sprintf("No such interface '%s' at object path '%s'", msg.Interface, msg.Path),
-			)
-			if err := service.conn.Send(reply); err != nil {
-				log.Println("Could not send reply:", err)
-			}
-			continue
-		}
-		switch msg.Member {
-		case "GetMessages":
-			reply = dbus.NewMethodReturnMessage(msg)
-			//TODO implement store and forward
-			var payload []Payload
-			if err := reply.AppendArgs(payload); err != nil {
-				log.Print("Cannot parse payload data from services")
-				reply = dbus.NewErrorMessage(msg, "Error.InvalidArguments", "Cannot parse services")
-			}
-			if err := service.conn.Send(reply); err != nil {
-				log.Println("Could not send reply:", err)
-			}
-		case "GetProperties":
-			reply = dbus.NewMethodReturnMessage(msg)
-			if pc, err := service.GetPreferredContext(); err == nil {
-				service.Properties[preferredContextProperty] = dbus.Variant{pc}
-			} else {
-				// Using "/" as an invalid 'path' even though it could be considered 'incorrect'
-				service.Properties[preferredContextProperty] = dbus.Variant{dbus.ObjectPath("/")}
-			}
-			if err := reply.AppendArgs(service.Properties); err != nil {
-				log.Print("Cannot parse payload data from services")
-				reply = dbus.NewErrorMessage(msg, "Error.InvalidArguments", "Cannot parse services")
-			}
-			if err := service.conn.Send(reply); err != nil {
-				log.Println("Could not send reply:", err)
-			}
-		case "SetProperty":
-			if err := service.setProperty(msg); err != nil {
-				log.Println("Property set failed:", err)
-				reply = dbus.NewErrorMessage(msg, "Error.InvalidArguments", err.Error())
-			} else {
-				reply = dbus.NewMethodReturnMessage(msg)
-			}
-			if err := service.conn.Send(reply); err != nil {
-				log.Println("Could not send reply:", err)
-			}
-		case "SendMessage":
-			var outMessage OutgoingMessage
-			outMessage.Reply = dbus.NewMethodReturnMessage(msg)
-			if err := msg.Args(&outMessage.Recipients, &outMessage.Attachments); err != nil {
-				log.Print("Cannot parse payload data from services")
-				reply = dbus.NewErrorMessage(msg, "Error.InvalidArguments", "Cannot parse New Message")
-				if err := service.conn.Send(reply); err != nil {
-					log.Println("Could not send reply:", err)
-				}
-			} else {
-				service.outMessage <- &outMessage
-			}
-		default:
-			log.Println("Received unknown method call on", msg.Interface, msg.Member)
-			reply = dbus.NewErrorMessage(
-				msg,
-				"org.freedesktop.DBus.Error.UnknownMethod",
-				fmt.Sprintf("No such method '%s' at object path '%s'", msg.Member, msg.Path),
-			)
-			if err := service.conn.Send(reply); err != nil {
-				log.Println("Could not send reply:", err)
-			}
-		}
-	}
-}
-
 func getUUIDFromObjectPath(objectPath dbus.ObjectPath) (string, error) {
 	str := string(objectPath)
 	defaultError := fmt.Errorf("%s is not a proper object path for a Message", str)
@@ -264,33 +243,20 @@ func (service *MMSService) SetPreferredContext(context dbus.ObjectPath) error {
 	if err := storage.SetPreferredContext(service.identity, context); err != nil {
 		return err
 	}
-	signal := dbus.NewSignalMessage(service.payload.Path, MMS_SERVICE_DBUS_IFACE, propertyChangedSignal)
-	if err := signal.AppendArgs(preferredContextProperty, dbus.Variant{context}); err != nil {
-		return err
-	}
-	return service.conn.Send(signal)
+	return service.conn.Emit(service.payload.Path,
+		MMS_SERVICE_DBUS_IFACE + "." + propertyChangedSignal,
+		preferredContextProperty, dbus.MakeVariant(context))
 }
 
 func (service *MMSService) GetPreferredContext() (dbus.ObjectPath, error) {
 	return storage.GetPreferredContext(service.identity)
 }
 
-func (service *MMSService) setProperty(msg *dbus.Message) error {
-	var propertyName string
-	var propertyValue dbus.Variant
-	if err := msg.Args(&propertyName, &propertyValue); err != nil {
-		return err
-	}
-
-	switch propertyName {
-	case preferredContextProperty:
-		preferredContextObjectPath := dbus.ObjectPath(reflect.ValueOf(propertyValue.Value).String())
-		service.Properties[preferredContextProperty] = dbus.Variant{preferredContextObjectPath}
-		return service.SetPreferredContext(preferredContextObjectPath)
-	default:
-		errors.New("property cannot be set")
-	}
-	return errors.New("unhandled property")
+func (service *MMSService) setPropPreferredContext(change *prop.Change) *dbus.Error {
+	preferredContextObjectPath := change.Value.(dbus.ObjectPath)
+	service.Properties[preferredContextProperty] = dbus.MakeVariant(preferredContextObjectPath)
+	err := service.SetPreferredContext(preferredContextObjectPath)
+	return dbus.NewError(err.Error(), nil)
 }
 
 // MessageRemoved closes message handlers, removes message from storage and emits the MessageRemoved signal to mms service dbus interface for message identified by objectPath parameter in this order.
@@ -324,14 +290,7 @@ func (service *MMSService) SingnalMessageRemoved(objectPath dbus.ObjectPath) err
 		return ErrorNilMMSService
 	}
 
-	signal := dbus.NewSignalMessage(service.payload.Path, MMS_SERVICE_DBUS_IFACE, messageRemovedSignal)
-	if err := signal.AppendArgs(objectPath); err != nil {
-		return err
-	}
-	if err := service.conn.Send(signal); err != nil {
-		return err
-	}
-	return nil
+	return service.conn.Emit(service.payload.Path, MMS_SERVICE_DBUS_IFACE + "." + messageRemovedSignal, objectPath)
 }
 
 func (service *MMSService) IncomingMessageFailAdded(mNotificationInd *mms.MNotificationInd, downloadError error) error {
@@ -347,9 +306,9 @@ func (service *MMSService) IncomingMessageFailAdded(mNotificationInd *mms.MNotif
 
 	params := make(map[string]dbus.Variant)
 
-	params["Status"] = dbus.Variant{"received"}
-	params["Date"] = dbus.Variant{time.Now().Format(time.RFC3339)}
-	params["Sender"] = dbus.Variant{strings.TrimSuffix(mNotificationInd.From, PLMN)}
+	params["Status"] = dbus.MakeVariant("received")
+	params["Date"] = dbus.MakeVariant(time.Now().Format(time.RFC3339))
+	params["Sender"] = dbus.MakeVariant(strings.TrimSuffix(mNotificationInd.From, PLMN))
 
 	errorCode := "x-ubports-nuntium-mms-error-unknown"
 	if eci, ok := downloadError.(interface{ Code() string }); ok {
@@ -386,14 +345,14 @@ func (service *MMSService) IncomingMessageFailAdded(mNotificationInd *mms.MNotif
 		log.Printf("Error marshaling download error message to json: %v", err)
 		errorMessage = []byte("{}")
 	}
-	params["Error"] = dbus.Variant{string(errorMessage)}
-	params["AllowRedownload"] = dbus.Variant{allowRedownload}
+	params["Error"] = dbus.MakeVariant(string(errorMessage))
+	params["AllowRedownload"] = dbus.MakeVariant(allowRedownload)
 
 	if mNotificationInd.RedownloadOfUUID != "" {
-		params["DeleteEvent"] = dbus.Variant{string(service.GenMessagePath(mNotificationInd.RedownloadOfUUID))}
+		params["DeleteEvent"] = dbus.MakeVariant(string(service.GenMessagePath(mNotificationInd.RedownloadOfUUID)))
 	}
 	if !mNotificationInd.Received.IsZero() {
-		params["Received"] = dbus.Variant{uint32(mNotificationInd.Received.Unix())}
+		params["Received"] = dbus.MakeVariant(uint32(mNotificationInd.Received.Unix()))
 	}
 
 	payload := Payload{Path: service.GenMessagePath(mNotificationInd.UUID), Properties: params}
@@ -426,10 +385,10 @@ func (service *MMSService) IncomingMessageAdded(mRetConf *mms.MRetrieveConf, mNo
 	}
 
 	if mNotificationInd.RedownloadOfUUID != "" {
-		payload.Properties["DeleteEvent"] = dbus.Variant{string(service.GenMessagePath(mNotificationInd.RedownloadOfUUID))}
+		payload.Properties["DeleteEvent"] = dbus.MakeVariant(string(service.GenMessagePath(mNotificationInd.RedownloadOfUUID)))
 	}
 	if !mNotificationInd.Received.IsZero() {
-		payload.Properties["Received"] = dbus.Variant{mNotificationInd.Received.Unix()}
+		payload.Properties["Received"] = dbus.MakeVariant(mNotificationInd.Received.Unix())
 	}
 
 	service.messageHandlers[payload.Path] = NewMessageInterface(service.conn, payload.Path, service.msgDeleteChan, nil)
@@ -452,10 +411,10 @@ func (service *MMSService) InitializationMessageAdded(mRetConf *mms.MRetrieveCon
 
 	// Initialization message only needs these properties to spawn proper handles in telepathy.
 	payload := Payload{Path: path, Properties: map[string]dbus.Variant{
-		"Status":  dbus.Variant{"received"},
-		"Sender":  dbus.Variant{strings.TrimSuffix(mNotificationInd.From, PLMN)},
-		"Rescued": dbus.Variant{true},
-		"Silent":  dbus.Variant{true},
+		"Status":  dbus.MakeVariant("received"),
+		"Sender":  dbus.MakeVariant(strings.TrimSuffix(mNotificationInd.From, PLMN)),
+		"Rescued": dbus.MakeVariant(true),
+		"Silent":  dbus.MakeVariant(true),
 	}}
 
 	// Extract "Sender" and "Recipients" property from mRetConf, if any.
@@ -479,11 +438,7 @@ func (service *MMSService) InitializationMessageAdded(mRetConf *mms.MRetrieveCon
 //MessageAdded emits a MessageAdded with the path to the added message which
 //is taken as a parameter
 func (service *MMSService) MessageAdded(msgPayload *Payload) error {
-	signal := dbus.NewSignalMessage(service.payload.Path, MMS_SERVICE_DBUS_IFACE, messageAddedSignal)
-	if err := signal.AppendArgs(msgPayload.Path, msgPayload.Properties); err != nil {
-		return err
-	}
-	return service.conn.Send(signal)
+	return service.conn.Emit(service.payload.Path, MMS_SERVICE_DBUS_IFACE + "." + messageAddedSignal, msgPayload.Path, msgPayload.Properties)
 }
 
 func (service *MMSService) isService(identity string) bool {
@@ -495,7 +450,7 @@ func (service *MMSService) isService(identity string) bool {
 }
 
 func (service *MMSService) Close() {
-	service.conn.UnregisterObjectPath(service.payload.Path)
+	service.conn.Export(nil, service.payload.Path, MMS_MESSAGE_DBUS_IFACE)
 	close(service.msgChan)
 	close(service.msgDeleteChan)
 	close(service.msgRedownloadChan)
@@ -503,17 +458,17 @@ func (service *MMSService) Close() {
 
 func (service *MMSService) parseMessage(mRetConf *mms.MRetrieveConf) (Payload, error) {
 	params := make(map[string]dbus.Variant)
-	params["Status"] = dbus.Variant{"received"}
+	params["Status"] = dbus.MakeVariant("received")
 	//TODO retrieve date correctly
-	params["Date"] = dbus.Variant{parseDate(mRetConf.Date)}
-	params["Sender"] = dbus.Variant{strings.TrimSuffix(mRetConf.From, PLMN)}
+	params["Date"] = dbus.MakeVariant(parseDate(mRetConf.Date))
+	params["Sender"] = dbus.MakeVariant(strings.TrimSuffix(mRetConf.From, PLMN))
 	if mRetConf.Subject != "" {
-		params["Subject"] = dbus.Variant{mRetConf.Subject}
+		params["Subject"] = dbus.MakeVariant(mRetConf.Subject)
 	}
 
-	params["Recipients"] = dbus.Variant{parseRecipients(strings.Join(mRetConf.To, ","))}
+	params["Recipients"] = dbus.MakeVariant(parseRecipients(strings.Join(mRetConf.To, ",")))
 	if smil, err := mRetConf.GetSmil(); err == nil {
-		params["Smil"] = dbus.Variant{smil}
+		params["Smil"] = dbus.MakeVariant(smil)
 	}
 	var attachments []Attachment
 	dataParts := mRetConf.GetDataParts()
@@ -533,7 +488,7 @@ func (service *MMSService) parseMessage(mRetConf *mms.MRetrieveConf) (Payload, e
 		}
 		attachments = append(attachments, attachment)
 	}
-	params["Attachments"] = dbus.Variant{attachments}
+	params["Attachments"] = dbus.MakeVariant(attachments)
 	payload := Payload{Path: service.GenMessagePath(mRetConf.UUID), Properties: params}
 	return payload, nil
 }
@@ -572,18 +527,6 @@ func (service *MMSService) MessageStatusChanged(uuid, status string) error {
 	return fmt.Errorf("no message interface handler for object path %s", msgObjectPath)
 }
 
-func (service *MMSService) ReplySendMessage(reply *dbus.Message, uuid string) (dbus.ObjectPath, error) {
-	msgObjectPath := service.GenMessagePath(uuid)
-	reply.AppendArgs(msgObjectPath)
-	if err := service.conn.Send(reply); err != nil {
-		return "", err
-	}
-	msg := NewMessageInterface(service.conn, msgObjectPath, service.msgDeleteChan, nil)
-	service.messageHandlers[msgObjectPath] = msg
-	service.MessageAdded(msg.GetPayload())
-	return msgObjectPath, nil
-}
-
 //TODO randomly creating a uuid until the download manager does this for us
 func (service *MMSService) GenMessagePath(uuid string) dbus.ObjectPath {
 	if service == nil {
@@ -603,24 +546,14 @@ func (service *MMSService) GenMessagePath(uuid string) dbus.ObjectPath {
 // string:com.lomiri.connectivity1.Private \
 // 	string:'MobileDataEnabled'
 func (service *MMSService) MobileDataEnabled() (bool, error) {
-	call := dbus.NewMethodCallMessage("com.lomiri.connectivity1", "/com/lomiri/connectivity1/Private", "org.freedesktop.DBus.Properties", "Get")
-	call.AppendArgs("com.lomiri.connectivity1.Private", "MobileDataEnabled")
-	reply, err := service.conn.SendWithReply(call)
+	v, err := service.conn.Object("com.lomiri.connectivity1", "/com/lomiri/connectivity1/Private").
+		GetProperty("com.lomiri.connectivity1.Private.MobileDataEnabled")
 	if err != nil {
-		return false, fmt.Errorf("send with reply error: %w", err)
+		return false, err
 	}
-	if reply.Type == dbus.TypeError {
-		return false, fmt.Errorf("reply is error: %w", reply.AsError())
-	}
-
-	var msg dbus.Variant
-	if err := reply.Args(&msg); err != nil {
-		return false, fmt.Errorf("reply decoding error: %w", err)
-	}
-
-	enabled, ok := msg.Value.(bool)
-	if !ok {
-		return false, fmt.Errorf("decoded variant does not contain bool value: %#v", msg)
+	var enabled bool
+	if err := v.Store(&enabled); err != nil {
+		return false, fmt.Errorf("decoding error: %w", err)
 	}
 	return enabled, nil
 }
