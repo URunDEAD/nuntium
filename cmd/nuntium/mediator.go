@@ -161,7 +161,7 @@ func (mediator *Mediator) handlePushAgentNotification(pushMsg *ofono.PushPDU, mo
 			log.Printf("Pushed transaction ID (%s) is in undownloaded pointing to UUID: %s", mNotificationInd.TransactionId, uuid)
 			if st, err := storage.GetMMSState(uuid); err == nil {
 				if st.MNotificationInd != nil {
-					log.Printf("Changing recieved date to the first push date: %v", st.MNotificationInd.Received)
+					log.Printf("Changing received date to the first push date: %v", st.MNotificationInd.Received)
 					mNotificationInd.Received = st.MNotificationInd.Received
 				} else {
 					log.Printf("Error, no MNotificationInd in loaded mmsState for UUID %s", uuid)

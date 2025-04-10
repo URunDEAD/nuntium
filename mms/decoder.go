@@ -248,7 +248,7 @@ func (dec *MMSDecoder) ReadBoundedBytes(reflectedPdu *reflect.Value, hdr string,
 	return v, nil
 }
 
-// A UintVar is a variable lenght uint of up to 5 octects long where
+// A UintVar is a variable length uint of up to 5 octects long where
 // more octects available are indicated with the most significant bit
 // set to 1
 func (dec *MMSDecoder) ReadUintVar(reflectedPdu *reflect.Value, hdr string) (value uint64, err error) {
