@@ -38,7 +38,7 @@ type MMSManager struct {
 func NewMMSManager(conn *dbus.Conn) (*MMSManager, error) {
 	reply, err := conn.RequestName(MMS_DBUS_NAME, dbus.NameFlagDoNotQueue)
 	if err != nil {
-		return nil, fmt.Errorf("Could not aquire name %s: %v", MMS_DBUS_NAME, err)
+		return nil, fmt.Errorf("Could not acquire name %s: %v", MMS_DBUS_NAME, err)
 	}
 	if reply != dbus.RequestNameReplyPrimaryOwner {
 		return nil, fmt.Errorf("Name %s already taken", MMS_DBUS_NAME)

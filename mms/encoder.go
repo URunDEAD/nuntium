@@ -398,7 +398,7 @@ func (enc *MMSEncoder) writeLongInteger(i uint64) error {
 	encodedLong := encodeLong(i)
 	encLength := uint64(len(encodedLong))
 	if encLength > SHORT_LENGTH_MAX {
-		return fmt.Errorf("cannot encode long integer, lenght was %d but expected %d", encLength, SHORT_LENGTH_MAX)
+		return fmt.Errorf("cannot encode long integer, length was %d but expected %d", encLength, SHORT_LENGTH_MAX)
 	}
 	if err := enc.writeByte(byte(encLength)); err != nil {
 		return err
