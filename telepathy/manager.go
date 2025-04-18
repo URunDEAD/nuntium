@@ -48,8 +48,10 @@ func NewMMSManager(conn *dbus.Conn) (*MMSManager, error) {
 
 	manager := MMSManager{conn: conn}
 
-	exportMap := map[string]string{"getServices": "GetServices"}
-	if err := manager.conn.ExportWithMap(manager, exportMap, MMS_DBUS_PATH, MMS_MANAGER_DBUS_IFACE); err != nil {
+	methodTable := map[string]interface{}{
+		"GetServices": manager.getServices,
+	}
+	if err := manager.conn.ExportMethodTable(methodTable, MMS_DBUS_PATH, MMS_MANAGER_DBUS_IFACE); err != nil {
 		panic(err)
 	}
 	return &manager, nil

@@ -54,11 +54,11 @@ func NewMessageInterface(conn *dbus.Conn, objectPath dbus.ObjectPath, deleteChan
 		msgChan:        make(chan *dbus.Message),
 		status:         "draft",
 	}
-	exportMap := map[string]string{
-		"delete": "Delete",
-		"redownload": "Redownload",
+	methodTable := map[string]interface{}{
+		"Delete":     msgInterface.delete,
+		"Redownload": msgInterface.redownload,
 	}
-	if err := msgInterface.conn.ExportWithMap(msgInterface, exportMap, msgInterface.objectPath, MMS_MESSAGE_DBUS_IFACE); err != nil {
+	if err := msgInterface.conn.ExportMethodTable(methodTable, msgInterface.objectPath, MMS_MESSAGE_DBUS_IFACE); err != nil {
 		panic(err)
 	}
 	return &msgInterface

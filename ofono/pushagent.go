@@ -73,11 +73,11 @@ func (agent *PushAgent) Register() (err error) {
 	}
 	agent.Push = make(chan *PushPDU)
 
-	exportMap := map[string]string{
-		"receiveNotification": "ReceiveNotification",
-		"release": "Release",
+	methodTable := map[string]interface{}{
+		"ReceiveNotification": agent.receiveNotification,
+		"Release":             agent.release,
 	}
-	if err := agent.conn.ExportWithMap(agent, exportMap, AGENT_TAG, PUSH_NOTIFICATION_AGENT_INTERFACE); err != nil {
+	if err := agent.conn.ExportMethodTable(methodTable, AGENT_TAG, PUSH_NOTIFICATION_AGENT_INTERFACE); err != nil {
 		panic(err)
 	}
 
@@ -132,7 +132,9 @@ func (agent *PushAgent) receiveNotification(data []byte, info map[string]*dbus.V
 	return nil
 }
 
-func (agent *PushAgent) release() {
+func (agent *PushAgent) release() *dbus.Error {
 	log.Printf("Push Agent on %s received Release", agent.modem)
 	agent.doRelease()
+
+	return nil
 }
