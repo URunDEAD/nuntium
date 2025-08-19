@@ -39,6 +39,10 @@ func (pdu *MNotificationInd) DownloadContent(proxyHost string, proxyPort int32) 
 	if err != nil {
 		return "", err
 	}
+	s := download.Started()
+	pa := download.Paused()
+	r := download.Resumed()
+	c := download.Canceled()
 	f := download.Finished()
 	p := download.DownloadProgress()
 	e := download.Error()
@@ -46,6 +50,12 @@ func (pdu *MNotificationInd) DownloadContent(proxyHost string, proxyPort int32) 
 	download.Start()
 	for {
 		select {
+		case started := <-s:
+			if !started {
+				return "", errors.New("download fails to start???")
+			} else {
+				log.Print("Started.")
+			}
 		case progress := <-p:
 			log.Print("Progress:", progress.Total, progress.Received)
 		case downloadFilePath := <-f:
@@ -55,6 +65,14 @@ func (pdu *MNotificationInd) DownloadContent(proxyHost string, proxyPort int32) 
 			return "", fmt.Errorf("Download timeout exceeded while fetching %s", pdu.ContentLocation)
 		case err := <-e:
 			return "", err
+
+		// Workaround https://gitlab.com/ubports/development/core/go-ldm/-/issues/2
+		// We don't really care about paused/resumed/canceled (because
+		// we don't perform those action), but if we don't listen to
+		// these signals and it's emitted then go-ldm will lock up.
+		case <-pa:
+		case <-r:
+		case <-c:
 		}
 	}
 }
@@ -68,6 +86,8 @@ func Upload(file, msc, proxyHost string, proxyPort int32) (string, error) {
 	if err != nil {
 		return "", err
 	}
+	s := upload.Started()
+	c := upload.Canceled()
 	f := upload.Finished()
 	p := upload.UploadProgress()
 	e := upload.Error()
@@ -78,6 +98,13 @@ func Upload(file, msc, proxyHost string, proxyPort int32) (string, error) {
 
 	for {
 		select {
+		case started := <-s:
+			if !started {
+				// XXX: cleanup?
+				return "", errors.New("upload fails to start???")
+			} else {
+				log.Print("Started.")
+			}
 		case progress := <-p:
 			log.Print("Progress:", progress.Total, progress.Received)
 		case responseFile := <-f:
@@ -87,6 +114,12 @@ func Upload(file, msc, proxyHost string, proxyPort int32) (string, error) {
 			return "", errors.New("upload timeout")
 		case err := <-e:
 			return "", err
+
+		// Workaround https://gitlab.com/ubports/development/core/go-ldm/-/issues/2
+		// We don't really care about canceled (because we don't perform
+		// cancel), but if we don't listen to these signals and it's
+		// emitted then go-ldm will lock up.
+		case <-c:
 		}
 	}
 }
