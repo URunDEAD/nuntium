@@ -41,12 +41,11 @@ type OfonoPushNotification struct {
 }
 
 type PushAgent struct {
-	conn           *dbus.Conn
-	modem          dbus.ObjectPath
-	Push           chan *PushPDU
-	messageChannel chan *dbus.Message
-	Registered     bool
-	m              sync.Mutex
+	conn       *dbus.Conn
+	modem      dbus.ObjectPath
+	Push       chan *PushPDU
+	Registered bool
+	m          sync.Mutex
 }
 
 func NewPushAgent(modem dbus.ObjectPath) *PushAgent {
@@ -109,8 +108,6 @@ func (agent *PushAgent) doRelease() {
 	agent.conn.Export(nil, AGENT_TAG, PUSH_NOTIFICATION_AGENT_INTERFACE)
 	close(agent.Push)
 	agent.Push = nil
-	close(agent.messageChannel)
-	agent.messageChannel = nil
 }
 
 func (agent *PushAgent) receiveNotification(data []byte, info map[string]*dbus.Variant) *dbus.Error {
