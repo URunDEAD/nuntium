@@ -52,6 +52,7 @@ type OfonoContext struct {
 
 type Modem struct {
 	conn                   *dbus.Conn
+	ofonoConnName          string
 	Modem                  dbus.ObjectPath
 	PushAgent              *PushAgent
 	identity               string
@@ -87,9 +88,10 @@ func (oProp OfonoContext) String() string {
 	return s
 }
 
-func NewModem(conn *dbus.Conn, objectPath dbus.ObjectPath) *Modem {
+func NewModem(conn *dbus.Conn, ofonoConnName string, objectPath dbus.ObjectPath) *Modem {
 	return &Modem{
 		conn:                   conn,
+		ofonoConnName:          ofonoConnName,
 		Modem:                  objectPath,
 		IdentityAdded:          make(chan string),
 		IdentityRemoved:        make(chan string),
@@ -163,7 +165,7 @@ watchloop:
 			log.Printf("Ending modem watch for %s", modem.Modem)
 			break watchloop
 		case s := <-modem.signal:
-			if s.Sender == OFONO_SENDER && s.Path == modem.Modem && s.Name == modemChanged {
+			if s.Sender == modem.ofonoConnName && s.Path == modem.Modem && s.Name == modemChanged {
 				if err := dbus.Store(s.Body, &propName, &propValue); err != nil {
 					log.Printf("Cannot interpret Modem Property change: %s", err)
 					continue watchloop
@@ -176,7 +178,7 @@ watchloop:
 				default:
 					continue watchloop
 				}
-			} else if s.Sender == OFONO_SENDER && s.Path == modem.Modem && s.Name == simChanged {
+			} else if s.Sender == modem.ofonoConnName && s.Path == modem.Modem && s.Name == simChanged {
 				if err := dbus.Store(s.Body, &propName, &propValue); err != nil {
 					log.Printf("Cannot interpret Sim Property change: %s", err)
 					continue watchloop
