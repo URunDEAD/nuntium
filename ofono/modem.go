@@ -98,6 +98,7 @@ func NewModem(conn *dbus.Conn, ofonoConnName string, objectPath dbus.ObjectPath)
 		PushInterfaceAvailable: make(chan bool),
 		endWatch:               make(chan bool),
 		PushAgent:              NewPushAgent(objectPath),
+		signal:                 make(chan *dbus.Signal),
 	}
 }
 
