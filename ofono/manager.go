@@ -30,10 +30,11 @@ import (
 type Modems map[dbus.ObjectPath]*Modem
 
 type ModemManager struct {
-	ModemAdded   chan (*Modem)
-	ModemRemoved chan (*Modem)
-	modems       Modems
-	conn         *dbus.Conn
+	ModemAdded    chan (*Modem)
+	ModemRemoved  chan (*Modem)
+	modems        Modems
+	conn          *dbus.Conn
+	ofonoConnName string
 }
 
 func NewModemManager(conn *dbus.Conn) *ModemManager {
@@ -52,6 +53,15 @@ func (mm *ModemManager) Init() error {
 		return err
 	}
 
+	if err := conn.AddMatchSignal(
+		dbus.WithMatchSender(DBUS_SERVICE),
+		dbus.WithMatchObjectPath(DBUS_OBJECTPATH),
+		dbus.WithMatchInterface(DBUS_INTERFACE),
+		dbus.WithMatchMember("NameOwnerChanged"),
+		dbus.WithMatchArg(0, OFONO_SENDER),
+	); err != nil {
+		return err
+	}
 	if err := conn.AddMatchSignal(
 		dbus.WithMatchObjectPath("/"),
 		dbus.WithMatchInterface(OFONO_MANAGER_INTERFACE),
@@ -72,6 +82,20 @@ func (mm *ModemManager) Init() error {
 	go mm.watchModems(signal)
 	conn.Signal(signal)
 
+	c := conn.BusObject().Call(DBUS_INTERFACE+".GetNameOwner", 0, OFONO_SENDER)
+	if c.Err != nil {
+		log.Print(
+			"Cannot get current oFono connection name "+
+				"(oFono may appear later):", err)
+	} else {
+		if err := dbus.Store(c.Body, &mm.ofonoConnName); err != nil {
+			// DBus returns giberish?
+			log.Print(
+				"Cannot get current oFono connection name "+
+					"(oFono may appear later):", err)
+		}
+	}
+
 	//Check for existing modems
 	modemPaths, err := getModems(conn)
 	if err != nil {
@@ -85,19 +109,38 @@ func (mm *ModemManager) Init() error {
 }
 
 func (mm *ModemManager) watchModems(signal chan *dbus.Signal) {
+	const dbusNameOwnerChanged = DBUS_INTERFACE + ".NameOwnerChanged"
 	const modemAdded = OFONO_MANAGER_INTERFACE + ".ModemAdded"
 	const modemRemoved = OFONO_MANAGER_INTERFACE + ".ModemRemoved"
 
 	for s := range signal {
+		var name, oldOwner, newOwner string
 		var objectPath dbus.ObjectPath
-		if s.Sender == OFONO_SENDER && s.Name == modemAdded {
+
+		// DBUS_SERVICE is the only well-known name included in signals.
+		if s.Sender == DBUS_SERVICE && s.Name == dbusNameOwnerChanged {
+			if err := dbus.Store(s.Body, &name, &oldOwner, &newOwner); err != nil {
+				log.Print(err)
+				continue
+			}
+			if name != OFONO_SENDER || newOwner == mm.ofonoConnName {
+				continue
+			}
+			mm.ofonoConnName = newOwner
+
+			// Either oFono has died or new instance has been respawned.
+			// Either ways, any old modems we have is now invalid. Remove
+			// them all. For respawned case, oFono will proceed to emit
+			// ModemAdded signal so we'll learn new modems that way.
+			mm.removeAllModems()
+		} else if s.Sender == mm.ofonoConnName && s.Name == modemAdded {
 			var signalProps PropertiesType
 			if err := dbus.Store(s.Body, &objectPath, &signalProps); err != nil {
 				log.Print(err)
 				continue
 			}
 			mm.addModem(objectPath)
-		} else if s.Sender == OFONO_SENDER && s.Name == modemRemoved {
+		} else if s.Sender == mm.ofonoConnName && s.Name == modemRemoved {
 			if err := dbus.Store(s.Body, &objectPath); err != nil {
 				log.Print(err)
 				continue
@@ -113,7 +156,7 @@ func (mm *ModemManager) addModem(objectPath dbus.ObjectPath) {
 		modem.Delete()
 		delete(mm.modems, objectPath)
 	}
-	mm.modems[objectPath] = NewModem(mm.conn, objectPath)
+	mm.modems[objectPath] = NewModem(mm.conn, mm.ofonoConnName, objectPath)
 	mm.ModemAdded <- mm.modems[objectPath]
 }
 
@@ -126,4 +169,14 @@ func (mm *ModemManager) removeModem(objectPath dbus.ObjectPath) {
 	} else {
 		log.Printf("Cannot satisfy request to remove modem %s as it does not exist", objectPath)
 	}
+}
+
+func (mm *ModemManager) removeAllModems() {
+	for _, modem := range mm.modems {
+		mm.ModemRemoved <- modem
+		log.Printf("Deleting modem instance %s", modem.Modem)
+		modem.Delete()
+	}
+
+	mm.modems = make(Modems)
 }

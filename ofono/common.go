@@ -26,6 +26,9 @@ import (
 )
 
 const (
+	DBUS_SERVICE                      = "org.freedesktop.DBus"
+	DBUS_OBJECTPATH                   = dbus.ObjectPath("/org/freedesktop/DBus")
+	DBUS_INTERFACE                    = "org.freedesktop.DBus"
 	AGENT_TAG                         = dbus.ObjectPath("/nuntium")
 	PUSH_NOTIFICATION_INTERFACE       = "org.ofono.PushNotification"
 	PUSH_NOTIFICATION_AGENT_INTERFACE = "org.ofono.PushNotificationAgent"

@@ -122,12 +122,12 @@ func NewMMSService(conn *dbus.Conn, modemObjPath dbus.ObjectPath, identity strin
 		},
 	}
 	prop.Export(service.conn, payload.Path, propsMap)
-	exportMap := map[string]string{
-		"getMessages": "GetMessages",
-		"sendMessage": "SendMessage",
-		"getProperties": "GetProperties",
+	methodTable := map[string]interface{}{
+		"GetMessages":   service.getMessages,
+		"SendMessage":   service.sendMessage,
+		"GetProperties": service.getProperties,
 	}
-	if err := service.conn.ExportWithMap(service, exportMap, payload.Path, MMS_MESSAGE_DBUS_IFACE); err != nil {
+	if err := service.conn.ExportMethodTable(methodTable, payload.Path, MMS_SERVICE_DBUS_IFACE); err != nil {
 		panic(err)
 	}
 	return &service

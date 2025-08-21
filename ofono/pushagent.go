@@ -41,12 +41,11 @@ type OfonoPushNotification struct {
 }
 
 type PushAgent struct {
-	conn           *dbus.Conn
-	modem          dbus.ObjectPath
-	Push           chan *PushPDU
-	messageChannel chan *dbus.Message
-	Registered     bool
-	m              sync.Mutex
+	conn       *dbus.Conn
+	modem      dbus.ObjectPath
+	Push       chan *PushPDU
+	Registered bool
+	m          sync.Mutex
 }
 
 func NewPushAgent(modem dbus.ObjectPath) *PushAgent {
@@ -73,11 +72,11 @@ func (agent *PushAgent) Register() (err error) {
 	}
 	agent.Push = make(chan *PushPDU)
 
-	exportMap := map[string]string{
-		"receiveNotification": "ReceiveNotification",
-		"release": "Release",
+	methodTable := map[string]interface{}{
+		"ReceiveNotification": agent.receiveNotification,
+		"Release":             agent.release,
 	}
-	if err := agent.conn.ExportWithMap(agent, exportMap, AGENT_TAG, PUSH_NOTIFICATION_AGENT_INTERFACE); err != nil {
+	if err := agent.conn.ExportMethodTable(methodTable, AGENT_TAG, PUSH_NOTIFICATION_AGENT_INTERFACE); err != nil {
 		panic(err)
 	}
 
@@ -109,8 +108,6 @@ func (agent *PushAgent) doRelease() {
 	agent.conn.Export(nil, AGENT_TAG, PUSH_NOTIFICATION_AGENT_INTERFACE)
 	close(agent.Push)
 	agent.Push = nil
-	close(agent.messageChannel)
-	agent.messageChannel = nil
 }
 
 func (agent *PushAgent) receiveNotification(data []byte, info map[string]*dbus.Variant) *dbus.Error {
@@ -132,7 +129,9 @@ func (agent *PushAgent) receiveNotification(data []byte, info map[string]*dbus.V
 	return nil
 }
 
-func (agent *PushAgent) release() {
+func (agent *PushAgent) release() *dbus.Error {
 	log.Printf("Push Agent on %s received Release", agent.modem)
 	agent.doRelease()
+
+	return nil
 }
