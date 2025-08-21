@@ -184,10 +184,14 @@ watchloop:
 					log.Printf("Cannot interpret Sim Property change: %s", err)
 					continue watchloop
 				}
-				if propName != "SubscriberIdentity" {
+				switch propName {
+				case "SubscriberIdentity":
+					modem.handleIdentity(propValue)
+				case "Present":
+					modem.handlePresent(propValue)
+				default:
 					continue watchloop
 				}
-				modem.handleIdentity(propValue)
 			}
 		}
 	}
@@ -206,13 +210,26 @@ func (modem *Modem) handleIdentity(propValue dbus.Variant) {
 	if identity == "" && modem.identity != "" {
 		log.Printf("Identity before remove %s", modem.identity)
 
-		modem.IdentityRemoved <- identity
+		modem.IdentityRemoved <- modem.identity
 		modem.identity = identity
 	}
 	log.Printf("Identity added %s", identity)
 	if identity != "" && modem.identity == "" {
 		modem.identity = identity
 		modem.IdentityAdded <- identity
+	}
+}
+
+func (modem *Modem) handlePresent(propValue dbus.Variant) {
+	present := reflect.ValueOf(propValue.Value()).Bool()
+
+	// When a SIM card is removed, some (all?) versions of oFono will send
+	// only PropertyChanged event of "Present" property. Thus we have to
+	// also handle this case as well.
+	if !present && modem.identity != "" {
+		log.Printf("SIM with identity %s removed", modem.identity)
+		modem.IdentityRemoved <- modem.identity
+		modem.identity = ""
 	}
 }
 
