@@ -1,9 +1,17 @@
-Format: http://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
+Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
+Source: https://gitlab.com/ubports/development/core/nuntium
 Upstream-Name: nuntium
-Source: https://launchpad.net/nuntium
 
 Files: *
-Copyright: Copyright (C) 2013 Canonical, Ltd.
+Copyright: 2014, Canonical Ltd.
+License: GPL-3
+
+Files: debian/*
+Copyright: 2013-2014, Canonical Ltd.
+  2025, Guido Berhoerster <guido+debian@berhoerster.name>
+  2025, Mike Gabriel <mike.gabriel@das-netwerkteam.de>
+License: GPL-3
+
 License: GPL-3
  This program is free software: you can redistribute it and/or modify it
  under the terms of the the GNU General Public License version 3, as
