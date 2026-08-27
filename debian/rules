@@ -4,18 +4,40 @@
 export DH_GOLANG_EXCLUDES := gitlab.com/ubports/development/core/nuntium/test
 export DH_GOLANG_INSTALL_EXTRA := mms/test_payloads/
 
-DEB_HOST_ARCH := $(shell dpkg-architecture -qDEB_HOST_ARCH)
-
 %:
-	dh $@ \
-		--buildsystem=golang \
-		--with=golang
+	dh $@ --builddirectory=_build
 
-override_dh_auto_test:
-# The test runners panic when running on powerpc64.
-ifneq ($(DEB_HOST_ARCH),powerpc)
-	dh_auto_test
-endif
+include /usr/share/dpkg/pkg-info.mk
 
-override_dh_missing:
-	dh_missing --fail-missing
+PKD   = $(word 1,$(abspath $(dir $(MAKEFILE_LIST))))
+PKG   = $(DEB_SOURCE)
+UVER  = $(shell echo $(DEB_VERSION) | cut -d "-" -f1)
+DTYPE =
+VER  ?= $(subst $(DTYPE),,$(UVER))
+
+UURL = https://gitlab.com/ubports/development/core/nuntium.git
+UREV = $(shell echo $(VER) | cut -d"." -f3)
+
+## http://wiki.debian.org/onlyjob/get-orig-source
+.PHONY: get-orig-source
+get-orig-source: $(PKG)_$(VER)$(DTYPE).orig.tar.xz $(info I: $(PKG)_$(VER)$(DTYPE))
+	@
+
+$(PKG)_$(VER)$(DTYPE).orig.tar.xz: $(info I: GIT Revision=$(UREV))
+	$(if $(wildcard $(PKG)-$(VER)),$(error $(PKG)-$(VER) exist, aborting..))
+	@echo "# Downloading..."
+	git clone $(UURL) $(PKG)-$(VER) \
+	   || $(RM) -r $(PKG)-$(VER)
+	cd $(PKG)-$(VER) \
+	   && git checkout "$(UREV)" \
+	   && ( echo "# Generating ChangeLog..." \
+	      ; git --no-pager log --format="%ai %aN (%h) %n%n%x09*%w(68,0,10) %s%n" > ChangeLog \
+	      ; touch -d "$$(git log -1 --format='%ci')" ChangeLog) \
+	   && echo "# Setting times..." \
+	   && for F in $$(git ls-tree -r --name-only HEAD); do touch --no-dereference -d "$$(git log -1 --format="%ai" -- $$F)" "$$F"; done \
+	   && echo "# Cleaning-up..." \
+	   && rm -rf .git .git*
+	@echo "# Packing..."
+	find -L "$(PKG)-$(VER)" -xdev -type f -print | sort \
+	   | XZ_OPT="-6v" tar -caf "../$(PKG)_$(VER)$(DTYPE).orig.tar.xz" -T- --owner=root --group=root --mode=a+rX \
+	   && $(RM) -r "$(PKG)-$(VER)"
