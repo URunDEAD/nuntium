@@ -328,7 +328,8 @@ func (context *OfonoContext) toggleActive(state bool, conn *dbus.Conn) error {
 			// If it works we set it as preferred in ofono, provided it is not
 			// a combined context.
 			// TODO get rid of nuntium's internal preferred setting
-			if !context.isPreferred() && context.isTypeMMS() {
+			_, preferenceSupported := context.preference()
+			if preferenceSupported && !context.isPreferred() && context.isTypeMMS() {
 				obj.Call(CONNECTION_CONTEXT_INTERFACE + ".SetProperty",
 					0, "Preferred", dbus.MakeVariant(true))
 			}
@@ -358,8 +359,20 @@ func (oContext OfonoContext) isActive() bool {
 	return reflect.ValueOf(oContext.Properties["Active"].Value()).Bool()
 }
 
+// Preferred is an Ubuntu Touch extension, absent from upstream oFono.
+// An omitted or invalid property must not panic or fabricate a preference.
+func (oContext OfonoContext) preference() (bool, bool) {
+	property, found := oContext.Properties["Preferred"]
+	if !found {
+		return false, false
+	}
+	value, supported := property.Value().(bool)
+	return value, supported
+}
+
 func (oContext OfonoContext) isPreferred() bool {
-	return reflect.ValueOf(oContext.Properties["Preferred"].Value()).Bool()
+	value, _ := oContext.preference()
+	return value
 }
 
 func (oContext OfonoContext) hasMessageCenter() bool {

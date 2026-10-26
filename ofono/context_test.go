@@ -23,6 +23,7 @@ package ofono
 
 import (
 	"errors"
+	"testing"
 
 	"github.com/godbus/dbus/v5"
 	. "gopkg.in/check.v1"
@@ -364,4 +365,42 @@ func (s *ContextTestSuite) TestGetProxyNoPort(c *C) {
 	p, err := context.GetProxy()
 	c.Assert(err, IsNil)
 	c.Check(p, DeepEquals, ProxyInfo{Host: proxy.Host, Port: 80})
+}
+
+// A mainline oFono context has no Ubuntu Touch Preferred extension.
+func TestContextOptionalPreferred(t *testing.T) {
+	for _, tc := range []struct {
+		name string
+		properties PropertiesType
+		preferred, supported bool
+	}{
+		{"missing", PropertiesType{}, false, false},
+		{"false", PropertiesType{"Preferred": dbus.MakeVariant(false)}, false, true},
+		{"true", PropertiesType{"Preferred": dbus.MakeVariant(true)}, true, true},
+		{"invalid", PropertiesType{"Preferred": dbus.MakeVariant("true")}, false, false},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			context := OfonoContext{Properties: tc.properties}
+			preferred, supported := context.preference()
+			if preferred != tc.preferred || supported != tc.supported {
+				t.Fatalf("preference=(%v,%v), want (%v,%v)", preferred, supported, tc.preferred, tc.supported)
+			}
+		})
+	}
+}
+
+func TestSelectMainlineMMSContextWithoutPreferred(t *testing.T) {
+	original := getOfonoProps
+	defer func() { getOfonoProps = original }()
+	properties := makeGenericContextProperty("Synthetic MMS", contextTypeMMS, false, true, false, false)
+	delete(properties, "Preferred")
+	want := OfonoContext{ObjectPath: "/synthetic/context1", Properties: properties}
+	getOfonoProps = func(_ *dbus.Conn, _ dbus.ObjectPath, _, _, _ string) ([]OfonoContext, error) {
+		return []OfonoContext{want}, nil
+	}
+	modem := Modem{}
+	contexts, err := modem.GetMMSContexts("")
+	if err != nil || len(contexts) != 1 || contexts[0].ObjectPath != want.ObjectPath {
+		t.Fatalf("mainline context rejected: contexts=%v error=%v", contexts, err)
+	}
 }
