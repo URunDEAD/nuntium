@@ -15,6 +15,8 @@ github.com/stretchr/objx v0.1.0/go.mod h1:HFkY916IF+rwdDfMAkV7OtwuqBVzrE8GR6GFx+
 github.com/stretchr/testify v1.7.0/go.mod h1:6Fq8oRcR53rry900zMqJjRRixrwX3KX962/h/Wwjteg=
 gitlab.com/ubports/development/core/go-ldm v0.0.0-20240829085643-4b8905597dac h1:qwJa6TLO/c3SnjyXyxVRMEpHY2AKAcoSOgzuHmXp3y0=
 gitlab.com/ubports/development/core/go-ldm v0.0.0-20240829085643-4b8905597dac/go.mod h1:pucSy3AIvCddSTBSWMi0ksVk1f14RLUoTTo/6ir9WEg=
+gitlab.com/ubports/development/core/go-ldm v0.0.0-20260316143558-a6686b452808 h1:VBnxfSF/00agpWjj2r09WOutbNjsKG4VYsKFTIo+gv4=
+gitlab.com/ubports/development/core/go-ldm v0.0.0-20260316143558-a6686b452808/go.mod h1:pucSy3AIvCddSTBSWMi0ksVk1f14RLUoTTo/6ir9WEg=
 golang.org/x/sys v0.0.0-20211025201205-69cdffdb9359 h1:2B5p2L5IfGiD7+b9BOoRMC6DgObAVZV+Fsp050NqXik=
 golang.org/x/sys v0.0.0-20211025201205-69cdffdb9359/go.mod h1:oPkhp1MJrh7nUepCBck5+mAzfO9JrbApNNgaTdGDITg=
 golang.org/x/sys v0.21.0 h1:rF+pYz3DAGSQAxAu1CbC7catZg4ebC4UIeIhKxBZvws=
